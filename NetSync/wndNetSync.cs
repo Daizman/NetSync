@@ -218,13 +218,12 @@ namespace NetSync
 
         private void Send(string data, IPAddress ip)
         {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            var client = new UdpClient();
             var end = new IPEndPoint(ip, _port);
-            socket.Bind(end);
             if (!string.IsNullOrEmpty(data))
             {
                 var dBytes = Encoding.UTF8.GetBytes(data);
-                socket.SendTo(dBytes, end);
+                client.Send(dBytes, dBytes.Length, end);
             }
         }
 
@@ -258,13 +257,10 @@ namespace NetSync
                     byte[] data = _reciv.Receive(ref remoteIp); // получаем данные
                     string message = Encoding.UTF8.GetString(data);
                     Console.WriteLine("MESSAGE: " + message);
+                    Console.WriteLine("IP: " + remoteIp.ToString());
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-            finally
+            catch
             {
             }
         }
