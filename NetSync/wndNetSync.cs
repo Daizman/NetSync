@@ -217,7 +217,7 @@ namespace NetSync
                 var curIp = addrTemplate + i.ToString();
                 if (curIp != _ipStr)
                 {
-                    Send("Hi", IPAddress.Parse(curIp));
+                    Send(friendKey, IPAddress.Parse(curIp));
                 }
             }
         }
@@ -262,8 +262,11 @@ namespace NetSync
                 {
                     byte[] data = _reciv.Receive(ref remoteIp); // получаем данные
                     string message = Encoding.UTF8.GetString(data);
-                    Console.WriteLine("MESSAGE: " + message);
-                    Console.WriteLine("IP: " + remoteIp.ToString());
+                    if(message == _user.PublicKey)
+                    {
+                        Console.WriteLine("MESSAGE: " + message);
+                        Console.WriteLine("IP: " + remoteIp.ToString());
+                    }
                 }
             }
             catch
