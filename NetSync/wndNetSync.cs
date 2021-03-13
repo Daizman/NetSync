@@ -155,6 +155,10 @@ namespace NetSync
         private void bDelFile_Click(object sender, EventArgs e)
         {
             var file = lbFolderSpace.SelectedItem;
+            if (file is null)
+            {
+                return;
+            }
             File.Delete((string)file);
             SetButtons();
         }
@@ -185,6 +189,11 @@ namespace NetSync
         private void SendFriendRq(string friendKey)
         {
 
+        }
+
+        private void lbFolderSpace_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            SetButtons();
         }
     }
 }
