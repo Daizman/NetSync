@@ -41,11 +41,14 @@ namespace NetSync
             this.bAddFile = new System.Windows.Forms.Button();
             this.gbPublicKey = new System.Windows.Forms.GroupBox();
             this.tbPublicKey = new System.Windows.Forms.TextBox();
+            this.fswTracker = new System.IO.FileSystemWatcher();
+            this.ofdAdd = new System.Windows.Forms.OpenFileDialog();
             this.pMenu.SuspendLayout();
             this.pFolderSpace.SuspendLayout();
             this.gbFriends.SuspendLayout();
             this.gbMenu.SuspendLayout();
             this.gbPublicKey.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.fswTracker)).BeginInit();
             this.SuspendLayout();
             // 
             // pMenu
@@ -123,6 +126,7 @@ namespace NetSync
             this.bCreateDir.TabIndex = 0;
             this.bCreateDir.Text = "Создать директорию";
             this.bCreateDir.UseVisualStyleBackColor = true;
+            this.bCreateDir.Click += new System.EventHandler(this.bCreateDir_Click);
             // 
             // bAddFriend
             // 
@@ -133,6 +137,7 @@ namespace NetSync
             this.bAddFriend.TabIndex = 1;
             this.bAddFriend.Text = "Предоставить доступ";
             this.bAddFriend.UseVisualStyleBackColor = true;
+            this.bAddFriend.Click += new System.EventHandler(this.bAddFriend_Click);
             // 
             // bDelFile
             // 
@@ -143,6 +148,7 @@ namespace NetSync
             this.bDelFile.TabIndex = 2;
             this.bDelFile.Text = "Удалить файл";
             this.bDelFile.UseVisualStyleBackColor = true;
+            this.bDelFile.Click += new System.EventHandler(this.bDelFile_Click);
             // 
             // bAddFile
             // 
@@ -153,6 +159,7 @@ namespace NetSync
             this.bAddFile.TabIndex = 3;
             this.bAddFile.Text = "Добавить файл";
             this.bAddFile.UseVisualStyleBackColor = true;
+            this.bAddFile.Click += new System.EventHandler(this.bAddFile_Click);
             // 
             // gbPublicKey
             // 
@@ -176,6 +183,15 @@ namespace NetSync
             this.tbPublicKey.Size = new System.Drawing.Size(236, 156);
             this.tbPublicKey.TabIndex = 0;
             // 
+            // fswTracker
+            // 
+            this.fswTracker.EnableRaisingEvents = true;
+            this.fswTracker.SynchronizingObject = this;
+            // 
+            // ofdAdd
+            // 
+            this.ofdAdd.FileName = "openFileDialog1";
+            // 
             // wndNetSync
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -186,12 +202,14 @@ namespace NetSync
             this.MinimumSize = new System.Drawing.Size(840, 570);
             this.Name = "wndNetSync";
             this.Text = "NetSync";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.wndNetSync_FormClosed);
             this.pMenu.ResumeLayout(false);
             this.pFolderSpace.ResumeLayout(false);
             this.gbFriends.ResumeLayout(false);
             this.gbMenu.ResumeLayout(false);
             this.gbPublicKey.ResumeLayout(false);
             this.gbPublicKey.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.fswTracker)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -210,6 +228,8 @@ namespace NetSync
         private System.Windows.Forms.Button bAddFile;
         private System.Windows.Forms.GroupBox gbPublicKey;
         private System.Windows.Forms.TextBox tbPublicKey;
+        private System.IO.FileSystemWatcher fswTracker;
+        private System.Windows.Forms.OpenFileDialog ofdAdd;
     }
 }
 

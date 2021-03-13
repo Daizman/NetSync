@@ -4,6 +4,9 @@ using System.Security.Cryptography;
 
 namespace ToolsLib
 {
+    /// <summary>
+    /// Класс для дампа и восстановления пользователя
+    /// </summary>
     public static class Dumper
     {
         public static void Dump(string encrString, string encrPath)

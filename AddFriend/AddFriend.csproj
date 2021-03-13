@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{A264A8B3-C719-4A86-869E-7DF6EFE964FE}</ProjectGuid>
+    <ProjectGuid>{E76BA95B-FD96-4F0C-9F68-13DBEC8BBAA8}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>NetSync</RootNamespace>
-    <AssemblyName>NetSync</AssemblyName>
+    <RootNamespace>AddFriend</RootNamespace>
+    <AssemblyName>AddFriend</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -33,9 +33,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -49,14 +46,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="wndNetSync.cs">
+    <Compile Include="wndAddFriend.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="wndNetSync.Designer.cs">
-      <DependentUpon>wndNetSync.cs</DependentUpon>
+    <Compile Include="wndAddFriend.Designer.cs">
+      <DependentUpon>wndAddFriend.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="wndAddFriend.resx">
+      <DependentUpon>wndAddFriend.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -66,10 +66,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="wndNetSync.resx">
-      <DependentUpon>wndNetSync.cs</DependentUpon>
-    </EmbeddedResource>
-    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -82,20 +78,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\AddFriend\AddFriend.csproj">
-      <Project>{e76ba95b-fd96-4f0c-9f68-13dbec8bbaa8}</Project>
-      <Name>AddFriend</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\CreateFolder\CreateFolder.csproj">
-      <Project>{aae9d4ae-eb3b-4ade-ae19-1e96a528de04}</Project>
-      <Name>CreateFolder</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ToolsLib\ToolsLib.csproj">
-      <Project>{4a4a16a8-41f5-42c0-8422-9cc5f659dde1}</Project>
-      <Name>ToolsLib</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
