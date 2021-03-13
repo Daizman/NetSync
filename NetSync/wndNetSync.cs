@@ -252,6 +252,19 @@ namespace NetSync
             _cancellationToken.Cancel();
         }
 
+        public Tuple<bool, UserAnswers> TryDecodeMsgUA(string message)
+        {
+            try
+            {
+                var answ = JsonConvert.DeserializeObject<UserAnswers>(message);
+                return new Tuple<bool, UserAnswers>(true, answ);
+            }
+            catch
+            {
+                return new Tuple<bool, UserAnswers>(false, UserAnswers.ERROR);
+            }
+        }
+
         private void ReceiveMessage()
         {
             try
@@ -262,10 +275,50 @@ namespace NetSync
                 {
                     byte[] data = _reciv.Receive(ref remoteIp); // получаем данные
                     string message = Encoding.UTF8.GetString(data);
-                    if(message == _user.PublicKey)
+                    if (message == _user.PublicKey)
                     {
-                        Console.WriteLine("MESSAGE: " + message);
-                        Console.WriteLine("IP: " + remoteIp.ToString());
+                        if (_user.UserDirectory.Path != "")
+                        {
+                            Send(JsonConvert.SerializeObject(UserAnswers.HAVEDIR), remoteIp.Address);
+                        }
+                        else
+                        {
+                            var quest = MessageBox.Show($"Пользователь {remoteIp} хочет добавить вас в друзья, принять?",
+                                                        "Запрос.",
+                                                        MessageBoxButtons.YesNo);
+                            if (quest == DialogResult.Yes)
+                            {
+                                Send(JsonConvert.SerializeObject(UserAnswers.ACCEPTRQ), remoteIp.Address);
+                            }
+                            else
+                            {
+                                Send(JsonConvert.SerializeObject(UserAnswers.DENIERQ), remoteIp.Address);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var tryDecode = TryDecodeMsgUA(message);
+                        if (tryDecode.Item1)
+                        {
+                            switch(tryDecode.Item2)
+                            {
+                                case UserAnswers.ACCEPTRQ:
+                                    var meJson = JsonConvert.SerializeObject(_user);
+                                    Send(meJson, remoteIp.Address);
+                                    break;
+                                case UserAnswers.DENIERQ:
+                                    MessageBox.Show("Пользователь отказался от предложения");
+                                    break;
+                                case UserAnswers.HAVEDIR:
+                                    MessageBox.Show("У пользователя уже есть папка");
+                                    break;
+                            }
+                        }
+                        else
+                        { 
+                            
+                        }
                     }
                 }
             }
