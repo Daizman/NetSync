@@ -255,9 +255,12 @@ namespace NetSync
                 while (true)
                 {
                     byte[] data = _reciv.Receive(ref remoteIp); // получаем данные
-                    string message = Encoding.UTF8.GetString(data);
-                    Console.WriteLine("MESSAGE: " + message);
-                    Console.WriteLine("IP: " + remoteIp.ToString());
+                    if (remoteIp.Address != _ip)
+                    {
+                        string message = Encoding.UTF8.GetString(data);
+                        Console.WriteLine("MESSAGE: " + message);
+                        Console.WriteLine("IP: " + remoteIp.ToString());
+                    }
                 }
             }
             catch
