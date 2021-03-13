@@ -25,7 +25,7 @@ namespace NetSync
         private User _user;
         private readonly IPAddress _ip;
         private readonly string _ipStr;
-        private readonly string _host;
+        private readonly IPHostEntry _host;
         private const int _port = 11000;
         private const string _dumpExt = ".ubd";
         private readonly string _userBackupFilePath;
@@ -38,9 +38,15 @@ namespace NetSync
 
             _cancellationToken = new CancellationTokenSource();
 
-            _host = Dns.GetHostName();
-            _ip = Dns.GetHostEntry(_host).AddressList[0];
-            _ipStr = _ip.ToString();
+            _host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in _host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    _ip = ip;
+                    _ipStr = _ip.ToString();
+                }
+            }
 
             _userBackupFilePath = GetUserBackupFile();
             if (_userBackupFilePath == "")
@@ -211,7 +217,7 @@ namespace NetSync
                 var curIp = addrTemplate + i.ToString();
                 if (curIp != _ipStr)
                 {
-                    Send("Hi", IPAddress.Parse(curIp));
+                    Send(friendKey, IPAddress.Parse(curIp));
                 }
             }
         }
@@ -246,6 +252,32 @@ namespace NetSync
             _cancellationToken.Cancel();
         }
 
+        public Tuple<bool, UserAnswers> TryDecodeMsgUA(string message)
+        {
+            try
+            {
+                var answ = JsonConvert.DeserializeObject<UserAnswers>(message);
+                return new Tuple<bool, UserAnswers>(true, answ);
+            }
+            catch
+            {
+                return new Tuple<bool, UserAnswers>(false, UserAnswers.ERROR);
+            }
+        }
+
+        public Tuple<bool, User> TryDecodeMsgUser(string message)
+        {
+            try
+            {
+                var answ = JsonConvert.DeserializeObject<User>(message);
+                return new Tuple<bool, User>(true, answ);
+            }
+            catch
+            {
+                return new Tuple<bool, User>(false, null);
+            }
+        }
+
         private void ReceiveMessage()
         {
             try
@@ -255,11 +287,66 @@ namespace NetSync
                 while (true)
                 {
                     byte[] data = _reciv.Receive(ref remoteIp); // получаем данные
-                    if (remoteIp.Address.ToString() != _ipStr)
+                    string message = Encoding.UTF8.GetString(data);
+                    if (message == _user.PublicKey)
                     {
-                        string message = Encoding.UTF8.GetString(data);
-                        Console.WriteLine("MESSAGE: " + message);
-                        Console.WriteLine("IP: " + remoteIp.ToString());
+                        if (_user.UserDirectory.Path != "")
+                        {
+                            Send(JsonConvert.SerializeObject(UserAnswers.HAVEDIR), remoteIp.Address);
+                        }
+                        else
+                        {
+                            var quest = MessageBox.Show($"Пользователь {remoteIp} хочет добавить вас в друзья, принять?",
+                                                        "Запрос.",
+                                                        MessageBoxButtons.YesNo);
+                            if (quest == DialogResult.Yes)
+                            {
+                                Send(JsonConvert.SerializeObject(UserAnswers.ACCEPTRQ), remoteIp.Address);
+                                Send(_user.PublicKey, remoteIp.Address);
+                            }
+                            else
+                            {
+                                Send(JsonConvert.SerializeObject(UserAnswers.DENIERQ), remoteIp.Address);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var tryDecode = TryDecodeMsgUA(message);
+                        if (tryDecode.Item1)
+                        {
+                            switch(tryDecode.Item2)
+                            {
+                                case UserAnswers.ACCEPTRQ:
+                                    var meJson = JsonConvert.SerializeObject(_user);
+                                    Send(meJson, remoteIp.Address);
+                                    break;
+                                case UserAnswers.DENIERQ:
+                                    MessageBox.Show("Пользователь отказался от предложения");
+                                    break;
+                                case UserAnswers.HAVEDIR:
+                                    MessageBox.Show("У пользователя уже есть папка");
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            var tryDecodeUser = TryDecodeMsgUser(message);
+                            if (tryDecodeUser.Item1)
+                            {
+                                if(!_user.Friends.CheckUser(tryDecodeUser.Item2.PublicKey))
+                                {
+                                    _user.Friends.AddFriend(new User(tryDecodeUser.Item2.PublicKey));
+                                }
+                            }
+                            else
+                            {
+                                if (!_user.Friends.CheckUser(message))
+                                {
+                                    _user.Friends.AddFriend(new User(message));
+                                }
+                            }
+                        }
                     }
                 }
             }

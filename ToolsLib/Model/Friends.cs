@@ -35,6 +35,18 @@ namespace ToolsLib.Model
             return false;
         }
 
+        public bool CheckUser(string publicKey)
+        {
+            foreach (var u in _users)
+            {
+                if (u.PublicKey == publicKey)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public void DeleteFriend(User user)
         {
             _users.Remove(user);
