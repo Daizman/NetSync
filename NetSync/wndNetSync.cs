@@ -9,11 +9,13 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ToolsLib;
+using ToolsLib.Interfaces;
 using ToolsLib.Model;
 
 namespace NetSync
@@ -22,11 +24,13 @@ namespace NetSync
     {
         private User _user;
         private readonly IPAddress _ip;
+        private readonly string _ipStr;
         private readonly string _host;
         private const int _port = 11000;
         private const string _dumpExt = ".ubd";
         private readonly string _userBackupFilePath;
         private readonly CancellationTokenSource _cancellationToken;
+        private UdpClient _reciv;
 
         public wndNetSync()
         {
@@ -36,6 +40,7 @@ namespace NetSync
 
             _host = Dns.GetHostName();
             _ip = Dns.GetHostEntry(_host).AddressList[0];
+            _ipStr = _ip.ToString();
 
             _userBackupFilePath = GetUserBackupFile();
             if (_userBackupFilePath == "")
@@ -52,6 +57,7 @@ namespace NetSync
             SetButtons();
             SetWatcher();
             FillFolderSpace();
+            Run();
         }
 
         private void RestoreUser(string file)
@@ -139,6 +145,17 @@ namespace NetSync
 
         private void wndNetSync_FormClosed(object sender, FormClosedEventArgs e)
         {
+            try
+            {
+                Stop();
+            }
+            finally
+            {
+            }
+            if (_user is null)
+            {
+                return;
+            }
             Dumper.Dump(JsonConvert.SerializeObject(_user), _userBackupFilePath);
         }
 
@@ -188,7 +205,68 @@ namespace NetSync
 
         private void SendFriendRq(string friendKey)
         {
+            var addrTemplate = "192.168.0.";
+            for (var i = 0; i < 192; i++)
+            {
+                var curIp = addrTemplate + i.ToString();
+                if (curIp != _ipStr)
+                {
+                    Send("Hi", IPAddress.Parse(curIp));
+                }
+            }
+        }
 
+        private void Send(string data, IPAddress ip)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            var end = new IPEndPoint(ip, _port);
+            socket.Bind(end);
+            if (!string.IsNullOrEmpty(data))
+            {
+                var dBytes = Encoding.UTF8.GetBytes(data);
+                socket.SendTo(dBytes, end);
+            }
+        }
+
+        public void Run()
+        {
+            try
+            {
+                Thread receiveThread = new Thread(new ThreadStart(ReceiveMessage));
+                receiveThread.Start();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public void Stop()
+        {
+            _reciv.Close();
+            _cancellationToken.Cancel();
+        }
+
+        private void ReceiveMessage()
+        {
+            try
+            {
+                _reciv = new UdpClient(_port); // UdpClient для получения данных
+                IPEndPoint remoteIp = null; // адрес входящего подключения
+                while (true)
+                {
+                    byte[] data = _reciv.Receive(ref remoteIp); // получаем данные
+                    string message = Encoding.UTF8.GetString(data);
+                    Console.WriteLine("MESSAGE: " + message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+            }
         }
 
         private void lbFolderSpace_SelectedIndexChanged(object sender, EventArgs e)
