@@ -25,7 +25,7 @@ namespace NetSync
         private User _user;
         private readonly IPAddress _ip;
         private readonly string _ipStr;
-        private readonly string _host;
+        private readonly IPHostEntry _host;
         private const int _port = 11000;
         private const string _dumpExt = ".ubd";
         private readonly string _userBackupFilePath;
@@ -38,9 +38,15 @@ namespace NetSync
 
             _cancellationToken = new CancellationTokenSource();
 
-            _host = Dns.GetHostName();
-            _ip = Dns.GetHostEntry(_host).AddressList[0];
-            _ipStr = _ip.ToString();
+            _host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in _host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    _ip = ip;
+                    _ipStr = _ip.ToString();
+                }
+            }
 
             _userBackupFilePath = GetUserBackupFile();
             if (_userBackupFilePath == "")
