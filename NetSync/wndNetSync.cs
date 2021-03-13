@@ -265,6 +265,19 @@ namespace NetSync
             }
         }
 
+        public Tuple<bool, User> TryDecodeMsgUser(string message)
+        {
+            try
+            {
+                var answ = JsonConvert.DeserializeObject<User>(message);
+                return new Tuple<bool, User>(true, answ);
+            }
+            catch
+            {
+                return new Tuple<bool, User>(false, null);
+            }
+        }
+
         private void ReceiveMessage()
         {
             try
@@ -289,6 +302,7 @@ namespace NetSync
                             if (quest == DialogResult.Yes)
                             {
                                 Send(JsonConvert.SerializeObject(UserAnswers.ACCEPTRQ), remoteIp.Address);
+                                Send(_user.PublicKey, remoteIp.Address);
                             }
                             else
                             {
@@ -316,8 +330,22 @@ namespace NetSync
                             }
                         }
                         else
-                        { 
-                            
+                        {
+                            var tryDecodeUser = TryDecodeMsgUser(message);
+                            if (tryDecodeUser.Item1)
+                            {
+                                if(!_user.Friends.CheckUser(tryDecodeUser.Item2.PublicKey))
+                                {
+                                    _user.Friends.AddFriend(new User(tryDecodeUser.Item2.PublicKey));
+                                }
+                            }
+                            else
+                            {
+                                if (!_user.Friends.CheckUser(message))
+                                {
+                                    _user.Friends.AddFriend(new User(message));
+                                }
+                            }
                         }
                     }
                 }
