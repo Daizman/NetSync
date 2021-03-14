@@ -297,8 +297,9 @@ namespace NetSync
             {
                 var newFName = file.Key.Split('\\').Last();
                 var newFPath = Path.Combine(_user.UserDirectory.Path, newFName);
-                File.Create(newFPath);
-                File.WriteAllBytes(newFPath, file.Value);
+                var f = File.Create(newFPath);
+                
+                f.Write(file.Value, 0, file.Value.Length);
             }
         }
 
