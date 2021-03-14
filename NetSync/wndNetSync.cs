@@ -35,15 +35,7 @@ namespace NetSync
         private UdpClient _reciv;
         private Dictionary<string, string> _curFriendsIps;
 
-        private delegate void Message(Request rq);
-        private event Message OnMessage;
-
         private Dispatcher _thisDisp;
-
-        private void SendMessage(Request msg)
-        {
-            OnMessage?.Invoke(msg);
-        }
 
         public wndNetSync()
         {
@@ -299,9 +291,15 @@ namespace NetSync
             }
         }
 
-        private void UpdateFolder()
-        { 
-            
+        private void UpdateFolder(DirectoryFiles files)
+        {
+            foreach(var file in files.DirFiles)
+            {
+                var newFName = file.Key.Split('\\').Last();
+                var newFPath = Path.Combine(_user.UserDirectory.Path, newFName);
+                File.Create(newFPath);
+                File.WriteAllBytes(newFPath, file.Value);
+            }
         }
 
         private void UpdateFriendsList()
@@ -402,11 +400,23 @@ namespace NetSync
                             break;
                         case UserRequestType.FRIENDCHECK:
                             break;
+                        case UserRequestType.IWANTUPDATEFOLDER:
+                            var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
+                            answerRq.Type = UserRequestType.IWANTSENDFOLDER;
+                            answerRq.MainData = JsonConvert.SerializeObject(uFiles);
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
+                            break;
+                        case UserRequestType.IWANTSENDFOLDER:
+                            UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
+                            break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
                             _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
                             _thisDisp.Invoke(UpdateFriendsList);
-                            //UpdateFolder();
+                            answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");

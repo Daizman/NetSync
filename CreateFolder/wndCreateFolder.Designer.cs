@@ -88,10 +88,10 @@ namespace CreateFolder
             // 
             // lFolderPath
             // 
-            this.lFolderPath.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)));
             this.lFolderPath.AutoSize = true;
+            this.lFolderPath.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lFolderPath.Font = new System.Drawing.Font("Microsoft Sans Serif", 13.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.lFolderPath.Location = new System.Drawing.Point(224, 27);
+            this.lFolderPath.Location = new System.Drawing.Point(0, 0);
             this.lFolderPath.Name = "lFolderPath";
             this.lFolderPath.Size = new System.Drawing.Size(0, 22);
             this.lFolderPath.TabIndex = 1;
