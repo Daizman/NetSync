@@ -201,6 +201,11 @@ namespace NetSync
                     MessageBox.Show("Пользователь уже в списке друзей");
                     return;
                 }
+                if (_user.PublicKey == friendKey)
+                {
+                    MessageBox.Show("Нельзя добавить себя в друзья");
+                    return;
+                }
                 SendFriendRq(friendKey);
             }
         }
@@ -313,7 +318,7 @@ namespace NetSync
                             MessageBox.Show("У пользователя уже есть папка");
                             break;
                         case UserRequestType.DENIERQ:
-                            MessageBox.Show("У пользователя уже есть папка");
+                            MessageBox.Show("Пользователь отклонил запрос дружбы");
                             break;
                         case UserRequestType.ACCEPTRQ:
                             MessageBox.Show("Пользователь принял запрос дружбы");
