@@ -300,6 +300,7 @@ namespace NetSync
                 var f = File.Create(newFPath);
                 
                 f.Write(file.Value, 0, file.Value.Length);
+                f.Close();
             }
         }
 
