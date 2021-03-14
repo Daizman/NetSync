@@ -33,11 +33,18 @@ namespace NetSync
         private UdpClient _reciv;
         private List<string> _curFriendsIps;
 
+
+        private delegate void FormController(Request rq);
+        private event FormController _notifyForm;
+
+
         public wndNetSync()
         {
             InitializeComponent();
 
             _curFriendsIps = new List<string>();
+
+            _notifyForm += FormControl;
 
             _cancellationToken = new CancellationTokenSource();
 
@@ -299,6 +306,21 @@ namespace NetSync
             }
         }
 
+        private void FormControl(Request rq)
+        {
+            if (rq.Type == UserRequestType.FRIENDRQ)
+            {
+                var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
+                if (addFolderDialog.ShowDialog() == DialogResult.OK)
+                {
+                    _user.UserDirectory.Path = addFolderDialog.SelectedPath;
+                    SetWatcher();
+                    FillFolderSpace();
+                    SetButtons();
+                }
+            }
+        }
+
         private void ReceiveMessage()
         {
             var cancelWaitTask = Task.Run(() =>
@@ -359,6 +381,7 @@ namespace NetSync
                                                                 MessageBoxButtons.YesNo);
                                     if (quest == DialogResult.Yes)
                                     {
+                                        _notifyForm?.Invoke(decodedRq);
                                        /* var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
                                         if (addFolderDialog.ShowDialog() == DialogResult.OK)
                                         {
