@@ -6,9 +6,10 @@ namespace CreateFolder
     public partial class wndCreateFolder : Form
     {
         private string _selectedPath = "";
-        public wndCreateFolder()
+        public wndCreateFolder(string title="Создание папки")
         {
             InitializeComponent();
+            Text = title;
         }
 
         public string SelectedPath 
