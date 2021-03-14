@@ -11,6 +11,7 @@ namespace ToolsLib
 
         public DirectoryFiles(string path)
         {
+            DirFiles = new Dictionary<string, byte[]>();
             var files = Directory.GetFiles(path);
             foreach (var file in files)
             {
