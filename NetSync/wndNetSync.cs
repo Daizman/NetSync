@@ -334,16 +334,16 @@ namespace NetSync
                             var tryDecodeUser = TryDecodeMsgUser(message);
                             if (tryDecodeUser.Item1)
                             {
-                                if(!_user.Friends.CheckUser(tryDecodeUser.Item2.PublicKey))
+                                if(!_user.Friends.Contains(tryDecodeUser.Item2.PublicKey))
                                 {
-                                    _user.Friends.AddFriend(new User(tryDecodeUser.Item2.PublicKey));
+                                    _user.Friends.Add(tryDecodeUser.Item2.PublicKey);
                                 }
                             }
                             else
                             {
-                                if (!_user.Friends.CheckUser(message))
+                                if (!_user.Friends.Contains(message))
                                 {
-                                    _user.Friends.AddFriend(new User(message));
+                                    _user.Friends.Add(message);
                                 }
                             }
                         }
