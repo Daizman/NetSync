@@ -257,8 +257,10 @@ namespace NetSync
         {
             try
             {
-                var receiveThread = new Thread(new ThreadStart(ReceiveMessage));
-                receiveThread.Start();
+                var receiveTask = new Task(ReceiveMessage);
+                receiveTask.Start();
+                //var receiveThread = new Thread(new ThreadStart(ReceiveMessage));
+                //receiveThread.Start();
             }
             catch (Exception ex)
             {
