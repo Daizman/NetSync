@@ -31,6 +31,7 @@ namespace NetSync
         private readonly string _userBackupFilePath;
         private readonly CancellationTokenSource _cancellationToken;
         private UdpClient _reciv;
+        private List<string> _curFriendsIps;
 
         public wndNetSync()
         {
@@ -212,12 +213,14 @@ namespace NetSync
         private void SendFriendRq(string friendKey)
         {
             var addrTemplate = "192.168.0.";
+            var frRq = new Request(UserRequestType.FRIENDRQ, friendKey);
+            var rqJson = JsonConvert.SerializeObject(frRq);
             for (var i = 0; i < 192; i++)
             {
                 var curIp = addrTemplate + i.ToString();
                 if (curIp != _ipStr)
                 {
-                    Send(friendKey, IPAddress.Parse(curIp));
+                    Send(rqJson, IPAddress.Parse(curIp));
                 }
             }
         }
@@ -252,29 +255,15 @@ namespace NetSync
             _cancellationToken.Cancel();
         }
 
-        public Tuple<bool, UserAnswers> TryDecodeMsgUA(string message)
+        private Request GetRequestFromMessage(string msg)
         {
-            try
+            try 
             {
-                var answ = JsonConvert.DeserializeObject<UserAnswers>(message);
-                return new Tuple<bool, UserAnswers>(true, answ);
+                return JsonConvert.DeserializeObject<Request>(msg);
             }
-            catch
+            catch 
             {
-                return new Tuple<bool, UserAnswers>(false, UserAnswers.ERROR);
-            }
-        }
-
-        public Tuple<bool, User> TryDecodeMsgUser(string message)
-        {
-            try
-            {
-                var answ = JsonConvert.DeserializeObject<User>(message);
-                return new Tuple<bool, User>(true, answ);
-            }
-            catch
-            {
-                return new Tuple<bool, User>(false, null);
+                return new Request(UserRequestType.ERROR);
             }
         }
 
@@ -286,67 +275,75 @@ namespace NetSync
                 IPEndPoint remoteIp = null; // адрес входящего подключения
                 while (true)
                 {
-                    byte[] data = _reciv.Receive(ref remoteIp); // получаем данные
-                    string message = Encoding.UTF8.GetString(data);
-                    if (message == _user.PublicKey)
+                    var data = _reciv.Receive(ref remoteIp); // получаем данные
+                    var message = Encoding.UTF8.GetString(data);
+                    var decodedRq = GetRequestFromMessage(message);
+                    var answerRq = new Request();
+                    var answerRqJson = "";
+
+                    switch(decodedRq.Type)
                     {
-                        if (_user.UserDirectory.Path != "")
-                        {
-                            Send(JsonConvert.SerializeObject(UserAnswers.HAVEDIR), remoteIp.Address);
-                        }
-                        else
-                        {
-                            var quest = MessageBox.Show($"Пользователь {remoteIp} хочет добавить вас в друзья, принять?",
-                                                        "Запрос.",
-                                                        MessageBoxButtons.YesNo);
-                            if (quest == DialogResult.Yes)
+                        case UserRequestType.HAVEDIR:
+                            MessageBox.Show("У пользователя уже есть папка");
+                            break;
+                        case UserRequestType.DENIERQ:
+                            MessageBox.Show("У пользователя уже есть папка");
+                            break;
+                        case UserRequestType.ACCEPTRQ:
+                            _user.Friends.Add(decodedRq.MainData);
+                            _curFriendsIps.Add(remoteIp.ToString());
+                            answerRq.Type = UserRequestType.FRIENDFINALACCEPT;
+                            answerRq.MainData = _user.PublicKey;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
+                            break;
+                        case UserRequestType.FRIENDRQ:
+                            if (decodedRq.MainData == _user.PublicKey)
                             {
-                                Send(JsonConvert.SerializeObject(UserAnswers.ACCEPTRQ), remoteIp.Address);
-                                Send(_user.PublicKey, remoteIp.Address);
-                            }
-                            else
-                            {
-                                Send(JsonConvert.SerializeObject(UserAnswers.DENIERQ), remoteIp.Address);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var tryDecode = TryDecodeMsgUA(message);
-                        if (tryDecode.Item1)
-                        {
-                            switch(tryDecode.Item2)
-                            {
-                                case UserAnswers.ACCEPTRQ:
-                                    var meJson = JsonConvert.SerializeObject(_user);
-                                    Send(meJson, remoteIp.Address);
-                                    break;
-                                case UserAnswers.DENIERQ:
-                                    MessageBox.Show("Пользователь отказался от предложения");
-                                    break;
-                                case UserAnswers.HAVEDIR:
-                                    MessageBox.Show("У пользователя уже есть папка");
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            var tryDecodeUser = TryDecodeMsgUser(message);
-                            if (tryDecodeUser.Item1)
-                            {
-                                if(!_user.Friends.Contains(tryDecodeUser.Item2.PublicKey))
+                                if (_user.UserDirectory.Path != "")
                                 {
-                                    _user.Friends.Add(tryDecodeUser.Item2.PublicKey);
+                                    answerRq.Type = UserRequestType.HAVEDIR;
+                                    answerRqJson = JsonConvert.SerializeObject(answerRq);
+                                    Send(answerRqJson, remoteIp.Address);
+                                }
+                                else
+                                {
+                                    var quest = MessageBox.Show($"Пользователь {remoteIp} хочет добавить вас в друзья, принять?",
+                                                                "Запрос.",
+                                                                MessageBoxButtons.YesNo);
+                                    if (quest == DialogResult.Yes)
+                                    {
+                                        var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
+                                        if (addFolderDialog.ShowDialog() == DialogResult.OK)
+                                        {
+                                            _user.UserDirectory.Path = addFolderDialog.SelectedPath;
+                                            SetWatcher();
+                                            FillFolderSpace();
+                                            SetButtons();
+                                        }
+                                        answerRq.Type = UserRequestType.ACCEPTRQ;
+                                        answerRq.MainData = _user.PublicKey;
+                                        answerRqJson = JsonConvert.SerializeObject(answerRq);
+                                        Send(answerRqJson, remoteIp.Address);
+                                    }
+                                    else
+                                    {
+                                        answerRq.Type = UserRequestType.DENIERQ;
+                                        answerRqJson = JsonConvert.SerializeObject(answerRq);
+                                        Send(answerRqJson, remoteIp.Address);
+                                    }
                                 }
                             }
-                            else
-                            {
-                                if (!_user.Friends.Contains(message))
-                                {
-                                    _user.Friends.Add(message);
-                                }
-                            }
-                        }
+                            break;
+                        case UserRequestType.FRIENDCHECK:
+                            break;
+                        case UserRequestType.FRIENDFINALACCEPT:
+                            _user.Friends.Add(decodedRq.MainData);
+                            break;
+                        case UserRequestType.ERROR:
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
