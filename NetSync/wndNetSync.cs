@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using ToolsLib;
 using ToolsLib.Interfaces;
+using System.Windows.Threading;
 using ToolsLib.Model;
 
 namespace NetSync
@@ -34,15 +35,21 @@ namespace NetSync
         private UdpClient _reciv;
         private Dictionary<string, string> _curFriendsIps;
 
-        private readonly ConcurrentQueue<Request> _queue;
-        private readonly AutoResetEvent _signal;
+        private delegate void Message(Request rq);
+        private event Message OnMessage;
+
+        private Dispatcher _thisDisp;
+
+        private void SendMessage(Request msg)
+        {
+            OnMessage?.Invoke(msg);
+        }
 
         public wndNetSync()
         {
             InitializeComponent();
 
-            _queue = new ConcurrentQueue<Request>();
-            _signal = new AutoResetEvent(true);
+            _thisDisp = Dispatcher.CurrentDispatcher;
 
             _curFriendsIps = new Dictionary<string, string>();
 
@@ -299,15 +306,10 @@ namespace NetSync
 
         private void UpdateFriendsList()
         {
-            _signal.WaitOne();
-            Request rq = null;
-            while (_queue.TryDequeue(out rq))
+            lbFriends.Items.Clear();
+            foreach (var frIp in _curFriendsIps)
             {
-                lbFriends.Items.Clear();
-                foreach (var frIp in _curFriendsIps)
-                {
-                    lbFriends.Items.Add(frIp);
-                }
+                lbFriends.Items.Add(frIp);
             }
         }
 
@@ -353,9 +355,7 @@ namespace NetSync
                             answerRq.MainData = _user.PublicKey;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
-                            _queue.Enqueue(decodedRq);
-                            _signal.Set();
-                            UpdateFriendsList();
+                            _thisDisp.Invoke(UpdateFriendsList);
                             break;
                         case UserRequestType.FRIENDRQ:
                             if (decodedRq.MainData == _user.PublicKey)
