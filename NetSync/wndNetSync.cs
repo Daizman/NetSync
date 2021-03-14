@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using ToolsLib;
 using ToolsLib.Interfaces;
+using System.Windows.Threading;
 using ToolsLib.Model;
 
 namespace NetSync
@@ -32,19 +33,17 @@ namespace NetSync
         private readonly string _userBackupFilePath;
         private readonly CancellationTokenSource _cancellationToken;
         private UdpClient _reciv;
-        private List<string> _curFriendsIps;
+        private Dictionary<string, string> _curFriendsIps;
 
-        //private readonly ConcurrentQueue<Request> _queue;
-        //private readonly AutoResetEvent _signal;
+        private Dispatcher _thisDisp;
 
         public wndNetSync()
         {
             InitializeComponent();
 
-            //_queue = new ConcurrentQueue<Request>();
-            //_signal = new AutoResetEvent(true);
+            _thisDisp = Dispatcher.CurrentDispatcher;
 
-            _curFriendsIps = new List<string>();
+            _curFriendsIps = new Dictionary<string, string>();
 
             _cancellationToken = new CancellationTokenSource();
 
@@ -292,17 +291,37 @@ namespace NetSync
             }
         }
 
-        private void UpdateFolder()
-        { 
-            
+        private void UpdateFolder(DirectoryFiles files)
+        {
+            foreach(var file in files.DirFiles)
+            {
+                var newFName = file.Key.Split('\\').Last();
+                var newFPath = Path.Combine(_user.UserDirectory.Path, newFName);
+                var f = File.Create(newFPath);
+                
+                f.Write(file.Value, 0, file.Value.Length);
+                f.Close();
+            }
         }
 
         private void UpdateFriendsList()
         {
             lbFriends.Items.Clear();
-            foreach(var frIp in _curFriendsIps)
+            foreach (var frIp in _curFriendsIps.Values)
             {
                 lbFriends.Items.Add(frIp);
+            }
+        }
+
+        private void CreateCopyFolder()
+        {
+            var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
+            if (addFolderDialog.ShowDialog() == DialogResult.OK)
+            {
+                _user.UserDirectory.Path = addFolderDialog.SelectedPath;
+                SetWatcher();
+                FillFolderSpace();
+                SetButtons();
             }
         }
 
@@ -343,12 +362,12 @@ namespace NetSync
                         case UserRequestType.ACCEPTRQ:
                             MessageBox.Show("Пользователь принял запрос дружбы");
                             _user.Friends.Add(decodedRq.MainData);
-                            _curFriendsIps.Add(remoteIp.ToString());
+                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
                             answerRq.Type = UserRequestType.FRIENDFINALACCEPT;
                             answerRq.MainData = _user.PublicKey;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
-                            UpdateFriendsList();
+                            _thisDisp.Invoke(UpdateFriendsList);
                             break;
                         case UserRequestType.FRIENDRQ:
                             if (decodedRq.MainData == _user.PublicKey)
@@ -366,14 +385,7 @@ namespace NetSync
                                                                 MessageBoxButtons.YesNo);
                                     if (quest == DialogResult.Yes)
                                     {
-                                       /*var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
-                                        if (addFolderDialog.ShowDialog() == DialogResult.OK)
-                                        {
-                                            _user.UserDirectory.Path = addFolderDialog.SelectedPath;
-                                            SetWatcher();
-                                            FillFolderSpace();
-                                            SetButtons();
-                                        }*/
+                                        _thisDisp.Invoke(CreateCopyFolder);
                                         answerRq.Type = UserRequestType.ACCEPTRQ;
                                         answerRq.MainData = _user.PublicKey;
                                         answerRqJson = JsonConvert.SerializeObject(answerRq);
@@ -390,11 +402,23 @@ namespace NetSync
                             break;
                         case UserRequestType.FRIENDCHECK:
                             break;
+                        case UserRequestType.IWANTUPDATEFOLDER:
+                            var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
+                            answerRq.Type = UserRequestType.IWANTSENDFOLDER;
+                            answerRq.MainData = JsonConvert.SerializeObject(uFiles);
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
+                            break;
+                        case UserRequestType.IWANTSENDFOLDER:
+                            UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
+                            break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
-                            _curFriendsIps.Add(remoteIp.ToString());
-                            UpdateFolder();
-                            UpdateFriendsList();
+                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            _thisDisp.Invoke(UpdateFriendsList);
+                            answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
