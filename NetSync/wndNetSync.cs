@@ -257,10 +257,8 @@ namespace NetSync
         {
             try
             {
-                var receiveTask = new Task(ReceiveMessage);
+                var receiveTask = new Task(ReceiveMessage, _cancellationToken.Token);
                 receiveTask.Start();
-                //var receiveThread = new Thread(new ThreadStart(ReceiveMessage));
-                //receiveThread.Start();
             }
             catch (Exception ex)
             {
@@ -270,8 +268,9 @@ namespace NetSync
 
         public void Stop()
         {
-            _reciv.Close();
             _cancellationToken.Cancel();
+            _reciv.Close();
+            _reciv.Dispose();
         }
 
         private Request GetRequestFromMessage(string msg)
@@ -302,12 +301,24 @@ namespace NetSync
 
         private void ReceiveMessage()
         {
+            var cancelWaitTask = Task.Run(() =>
+            {
+                using (var resetEvent = new ManualResetEvent(false))
+                {
+                    _cancellationToken.Token.Register(() => resetEvent.Set());
+                    resetEvent.WaitOne();
+                }
+            });
             try
             {
                 _reciv = new UdpClient(_port); // UdpClient для получения данных
                 IPEndPoint remoteIp = null; // адрес входящего подключения
-                while (true)
+                while (!_cancellationToken.Token.IsCancellationRequested)
                 {
+                    if (cancelWaitTask.IsCompleted)
+                    {
+                        break;
+                    }
                     var data = _reciv.Receive(ref remoteIp); // получаем данные
                     var message = Encoding.UTF8.GetString(data);
                     var decodedRq = GetRequestFromMessage(message);
@@ -386,8 +397,9 @@ namespace NetSync
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
+                Console.WriteLine(e.Message);
             }
         }
 
