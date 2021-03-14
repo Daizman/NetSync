@@ -32,19 +32,19 @@ namespace NetSync
         private readonly string _userBackupFilePath;
         private readonly CancellationTokenSource _cancellationToken;
         private UdpClient _reciv;
-        private List<string> _curFriendsIps;
+        private Dictionary<string, string> _curFriendsIps;
 
-        //private readonly ConcurrentQueue<Request> _queue;
-        //private readonly AutoResetEvent _signal;
+        private readonly ConcurrentQueue<Request> _queue;
+        private readonly AutoResetEvent _signal;
 
         public wndNetSync()
         {
             InitializeComponent();
 
-            //_queue = new ConcurrentQueue<Request>();
-            //_signal = new AutoResetEvent(true);
+            _queue = new ConcurrentQueue<Request>();
+            _signal = new AutoResetEvent(true);
 
-            _curFriendsIps = new List<string>();
+            _curFriendsIps = new Dictionary<string, string>();
 
             _cancellationToken = new CancellationTokenSource();
 
@@ -299,10 +299,15 @@ namespace NetSync
 
         private void UpdateFriendsList()
         {
-            lbFriends.Items.Clear();
-            foreach(var frIp in _curFriendsIps)
+            _signal.WaitOne();
+            Request rq = null;
+            while (_queue.TryDequeue(out rq))
             {
-                lbFriends.Items.Add(frIp);
+                lbFriends.Items.Clear();
+                foreach (var frIp in _curFriendsIps)
+                {
+                    lbFriends.Items.Add(frIp);
+                }
             }
         }
 
@@ -343,11 +348,13 @@ namespace NetSync
                         case UserRequestType.ACCEPTRQ:
                             MessageBox.Show("Пользователь принял запрос дружбы");
                             _user.Friends.Add(decodedRq.MainData);
-                            _curFriendsIps.Add(remoteIp.ToString());
+                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
                             answerRq.Type = UserRequestType.FRIENDFINALACCEPT;
                             answerRq.MainData = _user.PublicKey;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
+                            _queue.Enqueue(decodedRq);
+                            _signal.Set();
                             UpdateFriendsList();
                             break;
                         case UserRequestType.FRIENDRQ:
@@ -392,9 +399,9 @@ namespace NetSync
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
-                            _curFriendsIps.Add(remoteIp.ToString());
-                            UpdateFolder();
-                            UpdateFriendsList();
+                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            //UpdateFolder();
+                            //UpdateFriendsList();
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
