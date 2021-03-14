@@ -9,6 +9,11 @@ namespace ToolsLib
         [JsonProperty("dirFiles")]
         public Dictionary<string, byte[]> DirFiles { get; set; }
 
+        public DirectoryFiles()
+        {
+            DirFiles = new Dictionary<string, byte[]>();
+        }
+
         public DirectoryFiles(string path)
         {
             DirFiles = new Dictionary<string, byte[]>();
