@@ -37,6 +37,8 @@ namespace NetSync
         {
             InitializeComponent();
 
+            _curFriendsIps = new List<string>();
+
             _cancellationToken = new CancellationTokenSource();
 
             _host = Dns.GetHostEntry(Dns.GetHostName());
@@ -194,6 +196,11 @@ namespace NetSync
             if (addUserToDir.DialogResult == DialogResult.OK)
             {
                 var friendKey = addUserToDir.FriendPublicKey;
+                if (_user.Friends.Contains(friendKey))
+                {
+                    MessageBox.Show("Пользователь уже в списке друзей");
+                    return;
+                }
                 SendFriendRq(friendKey);
             }
         }
@@ -215,7 +222,7 @@ namespace NetSync
             var addrTemplate = "192.168.0.";
             var frRq = new Request(UserRequestType.FRIENDRQ, friendKey);
             var rqJson = JsonConvert.SerializeObject(frRq);
-            for (var i = 0; i < 256; i++)
+            for (var i = 0; i < 193; i++)
             {
                 var curIp = addrTemplate + i.ToString();
                 if (curIp != _ipStr)
