@@ -307,9 +307,21 @@ namespace NetSync
         private void UpdateFriendsList()
         {
             lbFriends.Items.Clear();
-            foreach (var frIp in _curFriendsIps)
+            foreach (var frIp in _curFriendsIps.Values)
             {
                 lbFriends.Items.Add(frIp);
+            }
+        }
+
+        private void CreateCopyFolder()
+        {
+            var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
+            if (addFolderDialog.ShowDialog() == DialogResult.OK)
+            {
+                _user.UserDirectory.Path = addFolderDialog.SelectedPath;
+                SetWatcher();
+                FillFolderSpace();
+                SetButtons();
             }
         }
 
@@ -373,14 +385,7 @@ namespace NetSync
                                                                 MessageBoxButtons.YesNo);
                                     if (quest == DialogResult.Yes)
                                     {
-                                       /*var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
-                                        if (addFolderDialog.ShowDialog() == DialogResult.OK)
-                                        {
-                                            _user.UserDirectory.Path = addFolderDialog.SelectedPath;
-                                            SetWatcher();
-                                            FillFolderSpace();
-                                            SetButtons();
-                                        }*/
+                                        _thisDisp.Invoke(CreateCopyFolder);
                                         answerRq.Type = UserRequestType.ACCEPTRQ;
                                         answerRq.MainData = _user.PublicKey;
                                         answerRqJson = JsonConvert.SerializeObject(answerRq);
@@ -400,8 +405,8 @@ namespace NetSync
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
                             _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            _thisDisp.Invoke(UpdateFriendsList);
                             //UpdateFolder();
-                            //UpdateFriendsList();
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
