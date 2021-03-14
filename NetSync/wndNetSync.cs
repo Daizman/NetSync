@@ -2,6 +2,7 @@
 using CreateFolder;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -33,9 +34,15 @@ namespace NetSync
         private UdpClient _reciv;
         private List<string> _curFriendsIps;
 
+        //private readonly ConcurrentQueue<Request> _queue;
+        //private readonly AutoResetEvent _signal;
+
         public wndNetSync()
         {
             InitializeComponent();
+
+            //_queue = new ConcurrentQueue<Request>();
+            //_signal = new AutoResetEvent(true);
 
             _curFriendsIps = new List<string>();
 
@@ -359,7 +366,7 @@ namespace NetSync
                                                                 MessageBoxButtons.YesNo);
                                     if (quest == DialogResult.Yes)
                                     {
-                                       /* var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
+                                       /*var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
                                         if (addFolderDialog.ShowDialog() == DialogResult.OK)
                                         {
                                             _user.UserDirectory.Path = addFolderDialog.SelectedPath;
