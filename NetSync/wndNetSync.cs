@@ -334,14 +334,14 @@ namespace NetSync
                                                                 MessageBoxButtons.YesNo);
                                     if (quest == DialogResult.Yes)
                                     {
-                                        var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
+                                       /* var addFolderDialog = new wndCreateFolder("Выберите место для копии папки у себя");
                                         if (addFolderDialog.ShowDialog() == DialogResult.OK)
                                         {
                                             _user.UserDirectory.Path = addFolderDialog.SelectedPath;
                                             SetWatcher();
                                             FillFolderSpace();
                                             SetButtons();
-                                        }
+                                        }*/
                                         answerRq.Type = UserRequestType.ACCEPTRQ;
                                         answerRq.MainData = _user.PublicKey;
                                         answerRqJson = JsonConvert.SerializeObject(answerRq);
