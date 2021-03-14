@@ -240,7 +240,7 @@ namespace NetSync
         {
             try
             {
-                Thread receiveThread = new Thread(new ThreadStart(ReceiveMessage));
+                var receiveThread = new Thread(new ThreadStart(ReceiveMessage));
                 receiveThread.Start();
             }
             catch (Exception ex)
@@ -267,6 +267,20 @@ namespace NetSync
             }
         }
 
+        private void UpdateFolder()
+        { 
+        
+        }
+
+        private void UpdateFriendsList()
+        {
+            lbFriends.Items.Clear();
+            foreach(var frIp in _curFriendsIps)
+            {
+                lbFriends.Items.Add(frIp);
+            }
+        }
+
         private void ReceiveMessage()
         {
             try
@@ -290,12 +304,14 @@ namespace NetSync
                             MessageBox.Show("У пользователя уже есть папка");
                             break;
                         case UserRequestType.ACCEPTRQ:
+                            MessageBox.Show("Пользователь принял запрос дружбы");
                             _user.Friends.Add(decodedRq.MainData);
                             _curFriendsIps.Add(remoteIp.ToString());
                             answerRq.Type = UserRequestType.FRIENDFINALACCEPT;
                             answerRq.MainData = _user.PublicKey;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
+                            UpdateFriendsList();
                             break;
                         case UserRequestType.FRIENDRQ:
                             if (decodedRq.MainData == _user.PublicKey)
@@ -339,6 +355,9 @@ namespace NetSync
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
+                            _curFriendsIps.Add(remoteIp.ToString());
+                            UpdateFolder();
+                            UpdateFriendsList();
                             break;
                         case UserRequestType.ERROR:
                             break;
