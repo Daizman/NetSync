@@ -215,7 +215,7 @@ namespace NetSync
             var addrTemplate = "192.168.0.";
             var frRq = new Request(UserRequestType.FRIENDRQ, friendKey);
             var rqJson = JsonConvert.SerializeObject(frRq);
-            for (var i = 0; i < 192; i++)
+            for (var i = 0; i < 256; i++)
             {
                 var curIp = addrTemplate + i.ToString();
                 if (curIp != _ipStr)
@@ -223,6 +223,11 @@ namespace NetSync
                     Send(rqJson, IPAddress.Parse(curIp));
                 }
             }
+        }
+
+        private void SendFriendCheck(string friendKey)
+        { 
+            
         }
 
         private void Send(string data, IPAddress ip)
@@ -269,7 +274,7 @@ namespace NetSync
 
         private void UpdateFolder()
         { 
-        
+            
         }
 
         private void UpdateFriendsList()
@@ -360,6 +365,7 @@ namespace NetSync
                             UpdateFriendsList();
                             break;
                         case UserRequestType.ERROR:
+                            MessageBox.Show("Произошла ошибка при обработке сообщения");
                             break;
                         default:
                             break;
