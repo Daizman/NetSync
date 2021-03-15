@@ -136,6 +136,7 @@ namespace NetSync
 
         private void FolderChanged(object sender, FileSystemEventArgs e)
         {
+            Console.WriteLine("IN_FOLDER_CHANGE");
             FillFolderSpace();
             if (!_imReciver)
             {
@@ -145,7 +146,6 @@ namespace NetSync
 
         private void NotifyFriends(string chType)
         {
-            _imReciver = false;
             var rq = new Request(UserRequestType.IUPDATEDFOLDER);
             var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
             rq.MainData = JsonConvert.SerializeObject(uFiles);
@@ -555,7 +555,6 @@ namespace NetSync
                             }
                             break;
                         case UserRequestType.IWANTUPDATEFOLDER:
-                            _imReciver = false;
                             var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
                             answerRq.Type = UserRequestType.IWANTSENDFOLDER;
                             answerRq.MainData = JsonConvert.SerializeObject(uFiles);
@@ -565,7 +564,6 @@ namespace NetSync
                         case UserRequestType.IWANTSENDFOLDER:
                             _imReciver = true;
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
-                            _imReciver = false;
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
@@ -585,7 +583,6 @@ namespace NetSync
                         case UserRequestType.IUPDATEDFOLDER:
                             _imReciver = true;
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData), true);
-                            _imReciver = false;
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
