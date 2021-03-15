@@ -424,7 +424,7 @@ namespace NetSync
             lbFriends.Items.Clear();
             foreach (var frIp in _curFriendsIps.Values)
             {
-                lbFriends.Items.Add(frIp);
+                lbFriends.Items.Add(frIp.Split(':')[0]);
             }
         }
 
