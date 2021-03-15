@@ -369,7 +369,7 @@ namespace NetSync
             var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
             var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
             var filesCount = myFiles.Length;
-            fswTracker.Path = "";
+            fswTracker.Path = "/";
 
             Console.WriteLine("IN_UPDATE_FOLDER");
             if (fullChanges) 
