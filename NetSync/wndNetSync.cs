@@ -390,6 +390,7 @@ namespace NetSync
                     {
                         Console.WriteLine("SET_TRACKER_BACK_DEL");
                         fswTracker.Path = _user.UserDirectory.Path;
+                        FillFolderSpace();
                         return;
                     }
                 }
@@ -412,6 +413,7 @@ namespace NetSync
                 {
                     Console.WriteLine("SET_TRACKER_BACK_RENAME");
                     fswTracker.Path = _user.UserDirectory.Path;
+                    FillFolderSpace();
                     return;
                 }
             }
@@ -427,6 +429,7 @@ namespace NetSync
             }
             Console.WriteLine("SET_TRACKER_BACK_JUST");
             fswTracker.Path = _user.UserDirectory.Path;
+            FillFolderSpace();
         }
 
         private void UpdateFriendsList()
