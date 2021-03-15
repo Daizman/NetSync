@@ -136,19 +136,19 @@ namespace NetSync
 
         private void FolderChanged(object sender, FileSystemEventArgs e)
         {
+            FillFolderSpace();
             if (!_imReciver)
             {
-                FillFolderSpace();
-                NotifyFriends(e.FullPath);
+                NotifyFriends();
             }
         }
 
-        private void NotifyFriends(string changed)
+        private void NotifyFriends()
         {
             PingFriends();
-            var rq = new Request(UserRequestType.IUPDATEDFOLDER);
             _imReciver = false;
-            var uFiles = new DirectoryFiles(changed);
+            var rq = new Request(UserRequestType.IUPDATEDFOLDER);
+            var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
             rq.MainData = JsonConvert.SerializeObject(uFiles);
             var jsonRq = JsonConvert.SerializeObject(rq);
             foreach (var fr in _curFriendsIps)
@@ -338,6 +338,41 @@ namespace NetSync
 
         private void UpdateFolder(DirectoryFiles files)
         {
+            var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
+            var filesCount = myFiles.Length;
+            if (filesCount != files.DirFiles.Count) 
+            {
+                foreach (var file in myFiles)
+                {
+                    if (!files.DirFiles.Keys.Contains(file)) 
+                    {
+                        File.Delete(file);
+                    }
+                }
+                _imReciver = false;
+                return;
+            }
+
+            var iRenamed = false;
+            var recFiles = files.DirFiles.Keys.ToArray();
+            for (var i = 0; i < filesCount; i++)
+            {
+                if (myFiles[i] != recFiles[i])
+                {
+                    File.Delete(myFiles[i]);
+
+                    var f = File.Create(recFiles[i]);
+                    f.Write(files.DirFiles[recFiles[i]], 0, files.DirFiles[recFiles[i]].Length);
+                    f.Close();
+                    iRenamed = true;
+                }
+            }
+            if (iRenamed)
+            {
+                _imReciver = false;
+                return;
+            }
+
             foreach(var file in files.DirFiles)
             {
                 var newFName = file.Key.Split('\\').Last();
