@@ -153,6 +153,8 @@ namespace NetSync
             var jsonRq = JsonConvert.SerializeObject(rq);
             foreach (var fr in _curFriendsIps)
             {
+                Console.WriteLine(fr.Value.Split(':')[0]);
+                Console.WriteLine(fr.Value);
                 Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
             }
         }
