@@ -474,6 +474,7 @@ namespace NetSync
                             Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.IWANTSENDFOLDER:
+                            _imReciver = true;
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
