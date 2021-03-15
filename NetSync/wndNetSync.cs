@@ -139,11 +139,11 @@ namespace NetSync
             FillFolderSpace();
             if (!_imReciver)
             {
-                NotifyFriends();
+                NotifyFriends(e.ChangeType.ToString());
             }
         }
 
-        private void NotifyFriends()
+        private void NotifyFriends(string chType)
         {
             PingFriends();
             _imReciver = false;
@@ -153,8 +153,7 @@ namespace NetSync
             var jsonRq = JsonConvert.SerializeObject(rq);
             foreach (var fr in _curFriendsIps)
             {
-                Console.WriteLine(fr.Value.Split(':')[0]);
-                Console.WriteLine(fr.Value);
+                Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
                 Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
             }
         }
@@ -360,11 +359,13 @@ namespace NetSync
 
         private void UpdateFolder(DirectoryFiles files, bool fullChanges=false)
         {
+            var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
+            var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
+            var filesCount = myFiles.Length;
+            Console.WriteLine("IN_UPDATE_FOLDER");
             if (fullChanges) 
             {
-                var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
-                var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
-                var filesCount = myFiles.Length;
+                Console.WriteLine("IN_FULL_CHANGES");
                 if (filesCount != files.DirFiles.Count)
                 {
                     foreach (var file in basesForUpd.Item1)
@@ -399,14 +400,14 @@ namespace NetSync
                 }
             }
 
-            foreach(var file in files.DirFiles)
+            foreach(var file in basesForUpd.Item2)
             {
-                var newFName = file.Key.Split('\\').Last();
-                var newFPath = Path.Combine(_user.UserDirectory.Path, newFName);
+                Console.WriteLine("BASE_RESTORE");
+                var newFPath = Path.Combine(_user.UserDirectory.Path, file);
                 
                 var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) :File.Create(newFPath);
-                
-                f.Write(file.Value, 0, file.Value.Length);
+                var fileData = files.DirFiles[Path.Combine(files.BasePath, file)];
+                f.Write(fileData, 0, fileData.Length);
                 f.Close();
             }
             _imReciver = false;
