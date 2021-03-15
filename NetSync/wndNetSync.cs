@@ -166,6 +166,7 @@ namespace NetSync
                 return;
             }
             fswTracker.Path = _user.UserDirectory.Path;
+            fswTracker.IncludeSubdirectories = true;
             fswTracker.NotifyFilter = NotifyFilters.Attributes
                                     | NotifyFilters.CreationTime
                                     | NotifyFilters.DirectoryName
