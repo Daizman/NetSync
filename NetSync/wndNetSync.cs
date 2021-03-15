@@ -388,6 +388,7 @@ namespace NetSync
                     }
                     if (iDeleted)
                     {
+                        Console.WriteLine("SET_TRACKER_BACK_DEL");
                         fswTracker.Path = _user.UserDirectory.Path;
                         return;
                     }
@@ -409,6 +410,7 @@ namespace NetSync
                 }
                 if (iRenamed)
                 {
+                    Console.WriteLine("SET_TRACKER_BACK_RENAME");
                     fswTracker.Path = _user.UserDirectory.Path;
                     return;
                 }
@@ -423,6 +425,7 @@ namespace NetSync
                 f.Write(fileData, 0, fileData.Length);
                 f.Close();
             }
+            Console.WriteLine("SET_TRACKER_BACK_JUST");
             fswTracker.Path = _user.UserDirectory.Path;
         }
 
