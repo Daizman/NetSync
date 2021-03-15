@@ -37,6 +37,8 @@ namespace NetSync
 
         private Dispatcher _thisDisp;
 
+        private bool _imReciver;
+
         public wndNetSync()
         {
             InitializeComponent();
@@ -134,7 +136,25 @@ namespace NetSync
 
         private void FolderChanged(object sender, FileSystemEventArgs e)
         {
-            FillFolderSpace();
+            if (!_imReciver)
+            {
+                FillFolderSpace();
+                NotifyFriends(e.FullPath);
+            }
+        }
+
+        private void NotifyFriends(string changed)
+        {
+            PingFriends();
+            var rq = new Request(UserRequestType.IUPDATEDFOLDER);
+            _imReciver = false;
+            var uFiles = new DirectoryFiles(changed);
+            rq.MainData = JsonConvert.SerializeObject(uFiles);
+            var jsonRq = JsonConvert.SerializeObject(rq);
+            foreach (var fr in _curFriendsIps)
+            {
+                Send(jsonRq, IPAddress.Parse(fr.Value));
+            }
         }
 
         private void SetWatcher()
@@ -322,11 +342,13 @@ namespace NetSync
             {
                 var newFName = file.Key.Split('\\').Last();
                 var newFPath = Path.Combine(_user.UserDirectory.Path, newFName);
-                var f = File.Create(newFPath);
+                
+                var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) :File.Create(newFPath);
                 
                 f.Write(file.Value, 0, file.Value.Length);
                 f.Close();
             }
+            _imReciver = false;
         }
 
         private void UpdateFriendsList()
@@ -461,6 +483,10 @@ namespace NetSync
                             answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
+                            break;
+                        case UserRequestType.IUPDATEDFOLDER:
+                            _imReciver = true;
+                            UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
