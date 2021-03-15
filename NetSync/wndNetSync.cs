@@ -356,42 +356,45 @@ namespace NetSync
             return new Tuple<string[], string[]>(myFiles, reciveFilesData);
         }
 
-        private void UpdateFolder(DirectoryFiles files)
+        private void UpdateFolder(DirectoryFiles files, bool fullChanges=false)
         {
-            var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
-            var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
-            var filesCount = myFiles.Length;
-            if (filesCount != files.DirFiles.Count) 
+            if (fullChanges) 
             {
-                foreach (var file in basesForUpd.Item1)
+                var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
+                var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
+                var filesCount = myFiles.Length;
+                if (filesCount != files.DirFiles.Count)
                 {
-                    if (!basesForUpd.Item2.Contains(file)) 
+                    foreach (var file in basesForUpd.Item1)
                     {
-                        File.Delete(Path.Combine(_user.UserDirectory.Path, file));
+                        if (!basesForUpd.Item2.Contains(file))
+                        {
+                            File.Delete(Path.Combine(_user.UserDirectory.Path, file));
+                        }
+                    }
+                    _imReciver = false;
+                    return;
+                }
+
+                var iRenamed = false;
+                for (var i = 0; i < filesCount; i++)
+                {
+                    if (basesForUpd.Item1[i] != basesForUpd.Item2[i])
+                    {
+                        File.Delete(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item1[i]));
+
+                        var f = File.Create(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item2[i]));
+                        var fileData = files.DirFiles[Path.Combine(files.BasePath, basesForUpd.Item2[i])];
+                        f.Write(fileData, 0, fileData.Length);
+                        f.Close();
+                        iRenamed = true;
                     }
                 }
-                _imReciver = false;
-                return;
-            }
-
-            var iRenamed = false;
-            for (var i = 0; i < filesCount; i++)
-            {
-                if (basesForUpd.Item1[i] != basesForUpd.Item2[i])
+                if (iRenamed)
                 {
-                    File.Delete(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item1[i]));
-
-                    var f = File.Create(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item2[i]));
-                    var fileData = files.DirFiles[Path.Combine(files.BasePath, basesForUpd.Item2[i])];
-                    f.Write(fileData, 0, fileData.Length);
-                    f.Close();
-                    iRenamed = true;
+                    _imReciver = false;
+                    return;
                 }
-            }
-            if (iRenamed)
-            {
-                _imReciver = false;
-                return;
             }
 
             foreach(var file in files.DirFiles)
@@ -543,7 +546,7 @@ namespace NetSync
                             break;
                         case UserRequestType.IUPDATEDFOLDER:
                             _imReciver = true;
-                            UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
+                            UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData), true);
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
