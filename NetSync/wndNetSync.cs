@@ -81,6 +81,10 @@ namespace NetSync
             {
                 var restJson = Dumper.Restore(file);
                 _user = JsonConvert.DeserializeObject<User>(restJson);
+                foreach (var fr in _user.Friends)
+                {
+                    SendFriendCheck(fr);
+                }
             }
             catch
             {
@@ -244,8 +248,18 @@ namespace NetSync
         }
 
         private void SendFriendCheck(string friendKey)
-        { 
-            
+        {
+            var addrTemplate = "192.168.0.";
+            var frRq = new Request(UserRequestType.FRIENDCHECK, friendKey);
+            var rqJson = JsonConvert.SerializeObject(frRq);
+            for (var i = 0; i < 193; i++)
+            {
+                var curIp = addrTemplate + i.ToString();
+                if (curIp != _ipStr)
+                {
+                    Send(rqJson, IPAddress.Parse(curIp));
+                }
+            }
         }
 
         private void Send(string data, IPAddress ip)
@@ -259,12 +273,23 @@ namespace NetSync
             }
         }
 
+        private void PingFriends()
+        {
+            _thisDisp.Invoke(lbFriends.Items.Clear);
+            foreach (var fr in _user.Friends)
+            {
+                SendFriendCheck(fr);
+            }
+        }
+
         public void Run()
         {
             try
             {
                 var receiveTask = new Task(ReceiveMessage, _cancellationToken.Token);
+                var pingTask = new Task(PingFriends, _cancellationToken.Token);
                 receiveTask.Start();
+                pingTask.Start();
             }
             catch (Exception ex)
             {
@@ -401,6 +426,23 @@ namespace NetSync
                             }
                             break;
                         case UserRequestType.FRIENDCHECK:
+                            if (decodedRq.MainData == _user.PublicKey) 
+                            {
+                                answerRq.Type = UserRequestType.FRIENDCHECKANSWER;
+                                answerRq.MainData = _user.PublicKey;
+                                answerRqJson = JsonConvert.SerializeObject(answerRq);
+                                Send(answerRqJson, remoteIp.Address);
+                            }
+                            break;
+                        case UserRequestType.FRIENDCHECKANSWER:
+                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            answerRq.Type = UserRequestType.FRIENDCHECKANSWERFINAL;
+                            answerRq.MainData = _user.PublicKey;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
+                            break;
+                        case UserRequestType.FRIENDCHECKANSWERFINAL:
+                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
                             break;
                         case UserRequestType.IWANTUPDATEFOLDER:
                             var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
