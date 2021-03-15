@@ -336,17 +336,38 @@ namespace NetSync
             }
         }
 
+        private Tuple<string[], string[]> GetBasesForUpdateFolder(string[] myFiles, DirectoryFiles reciveFiles)
+        {
+            var myFilesLen = myFiles.Length;
+            var myBasePathLen = _user.UserDirectory.Path.Length;
+            for (var i = 0; i < myFilesLen; i++)
+            {
+                myFiles[i] = myFiles[i].Substring(myBasePathLen + 1);
+            }
+
+            var reciveFilesData = reciveFiles.DirFiles.Keys.ToArray();
+            var reciveFilesDataLen = reciveFilesData.Length;
+            var reciveFilesBaseLen = reciveFiles.BasePath.Length;
+            for (var i = 0; i < reciveFilesDataLen; i++)
+            {
+                reciveFilesData[i] = reciveFilesData[i].Substring(reciveFilesBaseLen + 1);
+            }
+
+            return new Tuple<string[], string[]>(myFiles, reciveFilesData);
+        }
+
         private void UpdateFolder(DirectoryFiles files)
         {
             var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
+            var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
             var filesCount = myFiles.Length;
             if (filesCount != files.DirFiles.Count) 
             {
-                foreach (var file in myFiles)
+                foreach (var file in basesForUpd.Item1)
                 {
-                    if (!files.DirFiles.Keys.Contains(file)) 
+                    if (!basesForUpd.Item2.Contains(file)) 
                     {
-                        File.Delete(file);
+                        File.Delete(Path.Combine(_user.UserDirectory.Path, file));
                     }
                 }
                 _imReciver = false;
@@ -354,15 +375,15 @@ namespace NetSync
             }
 
             var iRenamed = false;
-            var recFiles = files.DirFiles.Keys.ToArray();
             for (var i = 0; i < filesCount; i++)
             {
-                if (myFiles[i] != recFiles[i])
+                if (basesForUpd.Item1[i] != basesForUpd.Item2[i])
                 {
-                    File.Delete(myFiles[i]);
+                    File.Delete(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item1[i]));
 
-                    var f = File.Create(recFiles[i]);
-                    f.Write(files.DirFiles[recFiles[i]], 0, files.DirFiles[recFiles[i]].Length);
+                    var f = File.Create(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item2[i]));
+                    var fileData = files.DirFiles[Path.Combine(files.BasePath, basesForUpd.Item2[i])];
+                    f.Write(fileData, 0, fileData.Length);
                     f.Close();
                     iRenamed = true;
                 }

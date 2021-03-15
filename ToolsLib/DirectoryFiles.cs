@@ -9,6 +9,9 @@ namespace ToolsLib
         [JsonProperty("dirFiles")]
         public Dictionary<string, byte[]> DirFiles { get; set; }
 
+        [JsonProperty("basePath")]
+        public string BasePath { get; set; }
+
         public DirectoryFiles()
         {
             DirFiles = new Dictionary<string, byte[]>();
@@ -16,6 +19,7 @@ namespace ToolsLib
 
         public DirectoryFiles(string path)
         {
+            BasePath = path;
             DirFiles = new Dictionary<string, byte[]>();
             var files = Directory.GetFiles(path);
             foreach (var file in files)
