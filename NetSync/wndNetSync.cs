@@ -544,6 +544,7 @@ namespace NetSync
                             answerRq.MainData = _user.PublicKey;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
+                            _thisDisp.Invoke(UpdateFriendsList);
                             break;
                         case UserRequestType.FRIENDCHECKANSWERFINAL:
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
@@ -554,6 +555,7 @@ namespace NetSync
                             {
                                 _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
                             }
+                            _thisDisp.Invoke(UpdateFriendsList);
                             break;
                         case UserRequestType.IWANTUPDATEFOLDER:
                             var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
