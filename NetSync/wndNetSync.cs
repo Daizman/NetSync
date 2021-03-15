@@ -153,7 +153,6 @@ namespace NetSync
             foreach (var fr in _curFriendsIps)
             {
                 Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
-                Console.WriteLine(new DateTime().TimeOfDay);
                 Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
             }
         }
@@ -383,7 +382,6 @@ namespace NetSync
                     }
                     if (iDeleted)
                     {
-                        _imReciver = false;
                         return;
                     }
                 }
@@ -404,7 +402,6 @@ namespace NetSync
                 }
                 if (iRenamed)
                 {
-                    _imReciver = false;
                     return;
                 }
             }
@@ -419,7 +416,6 @@ namespace NetSync
                 f.Write(fileData, 0, fileData.Length);
                 f.Close();
             }
-            _imReciver = false;
         }
 
         private void UpdateFriendsList()
@@ -569,6 +565,7 @@ namespace NetSync
                         case UserRequestType.IWANTSENDFOLDER:
                             _imReciver = true;
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
+                            _imReciver = false;
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
@@ -588,6 +585,7 @@ namespace NetSync
                         case UserRequestType.IUPDATEDFOLDER:
                             _imReciver = true;
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData), true);
+                            _imReciver = false;
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
