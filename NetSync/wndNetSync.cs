@@ -297,7 +297,8 @@ namespace NetSync
         {
             while (true)
             {
-                Thread.Sleep(5000);
+                Thread.Sleep(10000);
+                Console.WriteLine("PINGFRIENDS");
                 _thisDisp.Invoke(lbFriends.Items.Clear);
                 foreach (var fr in _user.Friends)
                 {
@@ -389,7 +390,7 @@ namespace NetSync
                 var iRenamed = false;
                 for (var i = 0; i < filesCount; i++)
                 {
-                    if (basesForUpd.Item1[i] != basesForUpd.Item2[i])
+                    if (!basesForUpd.Item2.Contains(basesForUpd.Item1[i]) && basesForUpd.Item1[i] != basesForUpd.Item2[i])
                     {
                         File.Delete(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item1[i]));
 
