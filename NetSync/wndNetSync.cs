@@ -154,6 +154,7 @@ namespace NetSync
             foreach (var fr in _curFriendsIps)
             {
                 Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
+                Console.WriteLine(new DateTime().Ticks);
                 Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
             }
         }
@@ -529,6 +530,7 @@ namespace NetSync
                             _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
                             break;
                         case UserRequestType.IWANTUPDATEFOLDER:
+                            _imReciver = false;
                             var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
                             answerRq.Type = UserRequestType.IWANTSENDFOLDER;
                             answerRq.MainData = JsonConvert.SerializeObject(uFiles);
