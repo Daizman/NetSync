@@ -372,15 +372,20 @@ namespace NetSync
                 Console.WriteLine("IN_FULL_CHANGES");
                 if (filesCount != files.DirFiles.Count)
                 {
+                    var iDeleted = false;
                     foreach (var file in basesForUpd.Item1)
                     {
                         if (!basesForUpd.Item2.Contains(file))
                         {
+                            iDeleted = true;
                             File.Delete(Path.Combine(_user.UserDirectory.Path, file));
                         }
                     }
-                    _imReciver = false;
-                    return;
+                    if (iDeleted)
+                    {
+                        _imReciver = false;
+                        return;
+                    }
                 }
 
                 var iRenamed = false;
