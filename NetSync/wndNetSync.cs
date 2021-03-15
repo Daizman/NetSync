@@ -37,8 +37,6 @@ namespace NetSync
 
         private Dispatcher _thisDisp;
 
-        private bool _imReciver;
-
         public wndNetSync()
         {
             InitializeComponent();
@@ -138,22 +136,26 @@ namespace NetSync
         {
             Console.WriteLine("IN_FOLDER_CHANGE");
             FillFolderSpace();
-            if (!_imReciver)
-            {
-                NotifyFriends(e.ChangeType.ToString());
-            }
+            NotifyFriends(e.ChangeType.ToString());
         }
 
         private void NotifyFriends(string chType)
         {
             var rq = new Request(UserRequestType.IUPDATEDFOLDER);
-            var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
-            rq.MainData = JsonConvert.SerializeObject(uFiles);
-            var jsonRq = JsonConvert.SerializeObject(rq);
-            foreach (var fr in _curFriendsIps)
+            try
             {
-                Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
-                Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
+                var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
+                rq.MainData = JsonConvert.SerializeObject(uFiles);
+                var jsonRq = JsonConvert.SerializeObject(rq);
+                foreach (var fr in _curFriendsIps)
+                {
+                    Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
+                    Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
+                }
+            }
+            catch
+            {
+                return;
             }
         }
 
@@ -366,6 +368,8 @@ namespace NetSync
             var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
             var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
             var filesCount = myFiles.Length;
+            fswTracker.Path = "";
+
             Console.WriteLine("IN_UPDATE_FOLDER");
             if (fullChanges) 
             {
@@ -383,6 +387,7 @@ namespace NetSync
                     }
                     if (iDeleted)
                     {
+                        fswTracker.Path = _user.UserDirectory.Path;
                         return;
                     }
                 }
@@ -403,11 +408,11 @@ namespace NetSync
                 }
                 if (iRenamed)
                 {
+                    fswTracker.Path = _user.UserDirectory.Path;
                     return;
                 }
             }
-
-            foreach(var file in basesForUpd.Item2)
+            foreach (var file in basesForUpd.Item2)
             {
                 Console.WriteLine("BASE_RESTORE");
                 var newFPath = Path.Combine(_user.UserDirectory.Path, file);
@@ -417,6 +422,7 @@ namespace NetSync
                 f.Write(fileData, 0, fileData.Length);
                 f.Close();
             }
+            fswTracker.Path = _user.UserDirectory.Path;
         }
 
         private void UpdateFriendsList()
@@ -565,7 +571,6 @@ namespace NetSync
                             Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.IWANTSENDFOLDER:
-                            _imReciver = true;
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
@@ -584,7 +589,6 @@ namespace NetSync
                             Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.IUPDATEDFOLDER:
-                            _imReciver = true;
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData), true);
                             break;
                         case UserRequestType.ERROR:
