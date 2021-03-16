@@ -68,7 +68,6 @@ namespace NetSync
             SetWatcher();
             FillFolderSpace();
             Run();
-            RestoreFolderFromFriend();
         }
 
         private void RestoreFolderFromFriend()
@@ -553,6 +552,7 @@ namespace NetSync
                             }
                             break;
                         case UserRequestType.FRIENDCHECKANSWER:
+                            bool iWasEmpty = _curFriendsIps.Count == 0;
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
                             {
                                 _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
@@ -566,6 +566,10 @@ namespace NetSync
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
+                            if (iWasEmpty) 
+                            {
+                                RestoreFolderFromFriend();
+                            }
                             break;
                         case UserRequestType.FRIENDCHECKANSWERFINAL:
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
