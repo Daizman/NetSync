@@ -75,6 +75,7 @@ namespace NetSync
         {
             if (_curFriendsIps.Count > 0) 
             {
+                Console.WriteLine("IN_RESTORE");
                 var rq = new Request();
                 rq.Type = UserRequestType.IWANTUPDATEFOLDER;
                 var rqJson = JsonConvert.SerializeObject(rq);
