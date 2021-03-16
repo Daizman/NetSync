@@ -510,6 +510,9 @@ namespace NetSync
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
+                            answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.FRIENDRQ:
                             if (decodedRq.MainData == _user.PublicKey)
