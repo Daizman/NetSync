@@ -143,6 +143,7 @@ namespace NetSync
         {
             Console.WriteLine("IN_FOLDER_CHANGE");
             FillFolderSpace();
+            Console.WriteLine("AFTER_FILLFOLDER");
             NotifyFriends(e.ChangeType.ToString());
         }
 
