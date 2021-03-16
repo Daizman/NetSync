@@ -28,7 +28,7 @@ namespace ToolsLib
                 if (f.CanRead)
                 {
                     //var fileContent = File.ReadAllBytes(file);
-                    byte[] fileBuf = null;
+                    byte[] fileBuf = new byte[f.Length];
                     var fileContent = f.Read(fileBuf, 0, (int)f.Length);
                     DirFiles.Add(file, fileBuf);
                 }
