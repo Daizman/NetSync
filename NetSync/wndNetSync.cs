@@ -81,6 +81,10 @@ namespace NetSync
             {
                 var restJson = Dumper.Restore(file);
                 _user = JsonConvert.DeserializeObject<User>(restJson);
+                foreach (var fr in _user.Friends)
+                {
+                    SendFriendCheck(fr);
+                }
             }
             catch
             {
@@ -130,7 +134,29 @@ namespace NetSync
 
         private void FolderChanged(object sender, FileSystemEventArgs e)
         {
+            Console.WriteLine("IN_FOLDER_CHANGE");
             FillFolderSpace();
+            NotifyFriends(e.ChangeType.ToString());
+        }
+
+        private void NotifyFriends(string chType)
+        {
+            var rq = new Request(UserRequestType.IUPDATEDFOLDER);
+            try
+            {
+                var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
+                rq.MainData = JsonConvert.SerializeObject(uFiles);
+                var jsonRq = JsonConvert.SerializeObject(rq);
+                foreach (var fr in _curFriendsIps)
+                {
+                    Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
+                    Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
+                }
+            }
+            catch
+            {
+                return;
+            }
         }
 
         private void SetWatcher()
@@ -140,6 +166,7 @@ namespace NetSync
                 return;
             }
             fswTracker.Path = _user.UserDirectory.Path;
+            fswTracker.IncludeSubdirectories = true;
             fswTracker.NotifyFilter = NotifyFilters.Attributes
                                     | NotifyFilters.CreationTime
                                     | NotifyFilters.DirectoryName
@@ -244,8 +271,18 @@ namespace NetSync
         }
 
         private void SendFriendCheck(string friendKey)
-        { 
-            
+        {
+            var addrTemplate = "192.168.0.";
+            var frRq = new Request(UserRequestType.FRIENDCHECK, friendKey);
+            var rqJson = JsonConvert.SerializeObject(frRq);
+            for (var i = 0; i < 193; i++)
+            {
+                var curIp = addrTemplate + i.ToString();
+                if (curIp != _ipStr)
+                {
+                    Send(rqJson, IPAddress.Parse(curIp));
+                }
+            }
         }
 
         private void Send(string data, IPAddress ip)
@@ -259,12 +296,28 @@ namespace NetSync
             }
         }
 
+        private void PingFriends()
+        {
+            while (true)
+            {
+                Thread.Sleep(10000);
+                Console.WriteLine("PINGFRIENDS");
+                _thisDisp.Invoke(lbFriends.Items.Clear);
+                foreach (var fr in _user.Friends)
+                {
+                    SendFriendCheck(fr);
+                }
+            }
+        }
+
         public void Run()
         {
             try
             {
                 var receiveTask = new Task(ReceiveMessage, _cancellationToken.Token);
+                var pingTask = new Task(PingFriends, _cancellationToken.Token);
                 receiveTask.Start();
+                pingTask.Start();
             }
             catch (Exception ex)
             {
@@ -291,17 +344,92 @@ namespace NetSync
             }
         }
 
-        private void UpdateFolder(DirectoryFiles files)
+        private Tuple<string[], string[]> GetBasesForUpdateFolder(string[] myFiles, DirectoryFiles reciveFiles)
         {
-            foreach(var file in files.DirFiles)
+            var myFilesLen = myFiles.Length;
+            var myBasePathLen = _user.UserDirectory.Path.Length;
+            for (var i = 0; i < myFilesLen; i++)
             {
-                var newFName = file.Key.Split('\\').Last();
-                var newFPath = Path.Combine(_user.UserDirectory.Path, newFName);
-                var f = File.Create(newFPath);
+                myFiles[i] = myFiles[i].Substring(myBasePathLen + 1);
+            }
+
+            var reciveFilesData = reciveFiles.DirFiles.Keys.ToArray();
+            var reciveFilesDataLen = reciveFilesData.Length;
+            var reciveFilesBaseLen = reciveFiles.BasePath.Length;
+            for (var i = 0; i < reciveFilesDataLen; i++)
+            {
+                reciveFilesData[i] = reciveFilesData[i].Substring(reciveFilesBaseLen + 1);
+            }
+
+            return new Tuple<string[], string[]>(myFiles, reciveFilesData);
+        }
+
+        private void UpdateFolder(DirectoryFiles files, bool fullChanges=false)
+        {
+            var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
+            var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
+            var filesCount = myFiles.Length;
+            fswTracker.Path = "/";
+
+            Console.WriteLine("IN_UPDATE_FOLDER");
+            if (fullChanges) 
+            {
+                Console.WriteLine("IN_FULL_CHANGES");
+                if (filesCount != files.DirFiles.Count)
+                {
+                    var iDeleted = false;
+                    foreach (var file in basesForUpd.Item1)
+                    {
+                        if (!basesForUpd.Item2.Contains(file))
+                        {
+                            iDeleted = true;
+                            File.Delete(Path.Combine(_user.UserDirectory.Path, file));
+                        }
+                    }
+                    if (iDeleted)
+                    {
+                        Console.WriteLine("SET_TRACKER_BACK_DEL");
+                        fswTracker.Path = _user.UserDirectory.Path;
+                        _thisDisp.Invoke(FillFolderSpace);
+                        return;
+                    }
+                }
+
+                var iRenamed = false;
+                for (var i = 0; i < filesCount; i++)
+                {
+                    if (!basesForUpd.Item2.Contains(basesForUpd.Item1[i]) && basesForUpd.Item1[i] != basesForUpd.Item2[i])
+                    {
+                        File.Delete(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item1[i]));
+
+                        var f = File.Create(Path.Combine(_user.UserDirectory.Path, basesForUpd.Item2[i]));
+                        var fileData = files.DirFiles[Path.Combine(files.BasePath, basesForUpd.Item2[i])];
+                        f.Write(fileData, 0, fileData.Length);
+                        f.Close();
+                        iRenamed = true;
+                    }
+                }
+                if (iRenamed)
+                {
+                    Console.WriteLine("SET_TRACKER_BACK_RENAME");
+                    fswTracker.Path = _user.UserDirectory.Path;
+                    _thisDisp.Invoke(FillFolderSpace);
+                    return;
+                }
+            }
+            foreach (var file in basesForUpd.Item2)
+            {
+                Console.WriteLine("BASE_RESTORE");
+                var newFPath = Path.Combine(_user.UserDirectory.Path, file);
                 
-                f.Write(file.Value, 0, file.Value.Length);
+                var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) :File.Create(newFPath);
+                var fileData = files.DirFiles[Path.Combine(files.BasePath, file)];
+                f.Write(fileData, 0, fileData.Length);
                 f.Close();
             }
+            Console.WriteLine("SET_TRACKER_BACK_JUST");
+            fswTracker.Path = _user.UserDirectory.Path;
+            _thisDisp.Invoke(FillFolderSpace);
         }
 
         private void UpdateFriendsList()
@@ -309,7 +437,7 @@ namespace NetSync
             lbFriends.Items.Clear();
             foreach (var frIp in _curFriendsIps.Values)
             {
-                lbFriends.Items.Add(frIp);
+                lbFriends.Items.Add(frIp.Split(':')[0]);
             }
         }
 
@@ -362,7 +490,14 @@ namespace NetSync
                         case UserRequestType.ACCEPTRQ:
                             MessageBox.Show("Пользователь принял запрос дружбы");
                             _user.Friends.Add(decodedRq.MainData);
-                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            if (_curFriendsIps.ContainsKey(decodedRq.MainData))
+                            {
+                                _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
+                            }
+                            else
+                            {
+                                _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            }
                             answerRq.Type = UserRequestType.FRIENDFINALACCEPT;
                             answerRq.MainData = _user.PublicKey;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
@@ -401,6 +536,39 @@ namespace NetSync
                             }
                             break;
                         case UserRequestType.FRIENDCHECK:
+                            if (decodedRq.MainData == _user.PublicKey) 
+                            {
+                                answerRq.Type = UserRequestType.FRIENDCHECKANSWER;
+                                answerRq.MainData = _user.PublicKey;
+                                answerRqJson = JsonConvert.SerializeObject(answerRq);
+                                Send(answerRqJson, remoteIp.Address);
+                            }
+                            break;
+                        case UserRequestType.FRIENDCHECKANSWER:
+                            if (_curFriendsIps.ContainsKey(decodedRq.MainData))
+                            {
+                                _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
+                            }
+                            else
+                            {
+                                _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            }
+                            answerRq.Type = UserRequestType.FRIENDCHECKANSWERFINAL;
+                            answerRq.MainData = _user.PublicKey;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
+                            _thisDisp.Invoke(UpdateFriendsList);
+                            break;
+                        case UserRequestType.FRIENDCHECKANSWERFINAL:
+                            if (_curFriendsIps.ContainsKey(decodedRq.MainData))
+                            {
+                                _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
+                            }
+                            else
+                            {
+                                _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            }
+                            _thisDisp.Invoke(UpdateFriendsList);
                             break;
                         case UserRequestType.IWANTUPDATEFOLDER:
                             var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
@@ -414,11 +582,21 @@ namespace NetSync
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
-                            _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            if (_curFriendsIps.ContainsKey(decodedRq.MainData))
+                            {
+                                _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
+                            }
+                            else
+                            {
+                                _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            }
                             _thisDisp.Invoke(UpdateFriendsList);
                             answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
+                            break;
+                        case UserRequestType.IUPDATEDFOLDER:
+                            UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData), true);
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");
