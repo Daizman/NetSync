@@ -421,10 +421,14 @@ namespace NetSync
             {
                 Console.WriteLine("BASE_RESTORE");
                 var newFPath = Path.Combine(_user.UserDirectory.Path, file);
+
+                var fs = new StreamWriter(newFPath);
+                fs.Write("");
+                fs.Close();
                 
-                var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) :File.Create(newFPath);
+                var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) : File.Create(newFPath);
+                
                 var fileData = files.DirFiles[Path.Combine(files.BasePath, file)];
-                f.Flush();
                 f.Write(fileData, 0, fileData.Length);
                 f.Close();
             }
