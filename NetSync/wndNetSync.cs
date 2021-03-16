@@ -149,20 +149,13 @@ namespace NetSync
         private void NotifyFriends(string chType)
         {
             var rq = new Request(UserRequestType.IUPDATEDFOLDER);
-            try
+            var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
+            rq.MainData = JsonConvert.SerializeObject(uFiles);
+            var jsonRq = JsonConvert.SerializeObject(rq);
+            foreach (var fr in _curFriendsIps)
             {
-                var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
-                rq.MainData = JsonConvert.SerializeObject(uFiles);
-                var jsonRq = JsonConvert.SerializeObject(rq);
-                foreach (var fr in _curFriendsIps)
-                {
-                    Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
-                    Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
-                }
-            }
-            catch
-            {
-                return;
+                Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
+                Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
             }
         }
 

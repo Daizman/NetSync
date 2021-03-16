@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace ToolsLib
 {
@@ -18,6 +19,39 @@ namespace ToolsLib
             DirFiles = new Dictionary<string, byte[]>();
         }
 
+        private bool WaitForFile(string fullPath)
+        {
+            int numTries = 0;
+            while (true)
+            {
+                ++numTries;
+                try
+                {
+                    // Attempt to open the file exclusively.
+                    using (FileStream fs = new FileStream(fullPath,
+                        FileMode.Open, FileAccess.ReadWrite,
+                        FileShare.None, 100))
+                    {
+                        fs.ReadByte();
+
+                        // If we got this far the file is ready
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (numTries > 10)
+                    {
+                        return false;
+                    }
+
+                    // Wait for the lock to be released
+                    Thread.Sleep(500);
+                }
+            }
+            return true;
+        }
+
         public DirectoryFiles(string path)
         {
             BasePath = path;
@@ -25,7 +59,7 @@ namespace ToolsLib
             var files = Directory.GetFiles(path);
             foreach (var file in files)
             {
-                try
+                if (WaitForFile(file))
                 {
                     var f = File.Open(file, FileMode.Open);
                     if (f.CanRead)
@@ -35,10 +69,6 @@ namespace ToolsLib
                         var fileContent = File.ReadAllBytes(file);
                         DirFiles.Add(file, fileContent);
                     }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"MESSAGE: {e.Message}");
                 }
             }
         }
