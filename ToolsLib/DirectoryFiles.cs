@@ -27,10 +27,9 @@ namespace ToolsLib
                 var f = File.Open(file, FileMode.Open);
                 if (f.CanRead)
                 {
-                    //var fileContent = File.ReadAllBytes(file);
-                    byte[] fileBuf = new byte[f.Length];
-                    var fileContent = f.Read(fileBuf, 0, unchecked((int)f.Length));
-                    DirFiles.Add(file, fileBuf);
+                    f.Close();
+                    var fileContent = File.ReadAllBytes(file);
+                    DirFiles.Add(file, fileContent);
                 }
             }
         }
