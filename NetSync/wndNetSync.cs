@@ -424,6 +424,7 @@ namespace NetSync
                 
                 var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) :File.Create(newFPath);
                 var fileData = files.DirFiles[Path.Combine(files.BasePath, file)];
+                f.Flush();
                 f.Write(fileData, 0, fileData.Length);
                 f.Close();
             }
