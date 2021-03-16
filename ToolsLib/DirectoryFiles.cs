@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -24,9 +25,12 @@ namespace ToolsLib
             var files = Directory.GetFiles(path);
             foreach (var file in files)
             {
+                Console.WriteLine($"BEFOPEN:{file}");
                 var f = File.Open(file, FileMode.Open);
+                Console.WriteLine("CANOPENFILE");
                 if (f.CanRead)
                 {
+                    Console.WriteLine("CANREADFILE");
                     f.Close();
                     var fileContent = File.ReadAllBytes(file);
                     DirFiles.Add(file, fileContent);
