@@ -2,11 +2,7 @@
 using CreateFolder;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -16,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ToolsLib;
-using ToolsLib.Interfaces;
 using System.Windows.Threading;
 using ToolsLib.Model;
 
@@ -73,6 +68,18 @@ namespace NetSync
             SetWatcher();
             FillFolderSpace();
             Run();
+        }
+
+        private void RestoreFolderFromFriend()
+        {
+            if (_curFriendsIps.Count > 0) 
+            {
+                Console.WriteLine("IN_RESTORE");
+                var rq = new Request();
+                rq.Type = UserRequestType.IWANTUPDATEFOLDER;
+                var rqJson = JsonConvert.SerializeObject(rq);
+                Send(rqJson, IPAddress.Parse(_curFriendsIps.Values.ToArray()[0].Split(':')[0]));
+            }
         }
 
         private void RestoreUser(string file)
@@ -142,20 +149,13 @@ namespace NetSync
         private void NotifyFriends(string chType)
         {
             var rq = new Request(UserRequestType.IUPDATEDFOLDER);
-            try
+            var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
+            rq.MainData = JsonConvert.SerializeObject(uFiles);
+            var jsonRq = JsonConvert.SerializeObject(rq);
+            foreach (var fr in _curFriendsIps)
             {
-                var uFiles = new DirectoryFiles(_user.UserDirectory.Path);
-                rq.MainData = JsonConvert.SerializeObject(uFiles);
-                var jsonRq = JsonConvert.SerializeObject(rq);
-                foreach (var fr in _curFriendsIps)
-                {
-                    Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
-                    Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
-                }
-            }
-            catch
-            {
-                return;
+                Console.WriteLine("I NOTIFY FRIEND: " + fr.Value.Split(':')[0] + " because: " + chType);
+                Send(jsonRq, IPAddress.Parse(fr.Value.Split(':')[0]));
             }
         }
 
@@ -421,8 +421,13 @@ namespace NetSync
             {
                 Console.WriteLine("BASE_RESTORE");
                 var newFPath = Path.Combine(_user.UserDirectory.Path, file);
+
+                var fs = new StreamWriter(newFPath);
+                fs.Write("");
+                fs.Close();
                 
-                var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) :File.Create(newFPath);
+                var f = File.Exists(newFPath) ? File.Open(newFPath, FileMode.Open) : File.Create(newFPath);
+                
                 var fileData = files.DirFiles[Path.Combine(files.BasePath, file)];
                 f.Write(fileData, 0, fileData.Length);
                 f.Close();
@@ -503,6 +508,9 @@ namespace NetSync
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
+                            answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.FRIENDRQ:
                             if (decodedRq.MainData == _user.PublicKey)
@@ -545,6 +553,7 @@ namespace NetSync
                             }
                             break;
                         case UserRequestType.FRIENDCHECKANSWER:
+                            bool iWasEmpty = _curFriendsIps.Count == 0;
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
                             {
                                 _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
@@ -558,6 +567,10 @@ namespace NetSync
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
+                            if (iWasEmpty) 
+                            {
+                                RestoreFolderFromFriend();
+                            }
                             break;
                         case UserRequestType.FRIENDCHECKANSWERFINAL:
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
