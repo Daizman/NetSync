@@ -24,7 +24,10 @@ namespace ToolsLib
             var files = Directory.GetFiles(path);
             foreach (var file in files)
             {
-                var fileContent = File.ReadAllBytes(file);
+                var fStream = File.OpenRead(file);
+                byte[] fileContent = null;
+
+                fStream.Read(fileContent, 0, (int)fStream.Length);
                 DirFiles.Add(file, fileContent);
             }
         }
