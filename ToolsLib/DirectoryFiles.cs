@@ -25,15 +25,20 @@ namespace ToolsLib
             var files = Directory.GetFiles(path);
             foreach (var file in files)
             {
-                Console.WriteLine($"BEFOPEN:{file}");
-                var f = File.Open(file, FileMode.Open);
-                Console.WriteLine("CANOPENFILE");
-                if (f.CanRead)
+                try
                 {
-                    Console.WriteLine("CANREADFILE");
-                    f.Close();
-                    var fileContent = File.ReadAllBytes(file);
-                    DirFiles.Add(file, fileContent);
+                    var f = File.Open(file, FileMode.Open);
+                    if (f.CanRead)
+                    {
+                        Console.WriteLine("CANREADFILE");
+                        f.Close();
+                        var fileContent = File.ReadAllBytes(file);
+                        DirFiles.Add(file, fileContent);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"MESSAGE: {e.Message}");
                 }
             }
         }
