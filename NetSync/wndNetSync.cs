@@ -2,11 +2,7 @@
 using CreateFolder;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -16,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ToolsLib;
-using ToolsLib.Interfaces;
 using System.Windows.Threading;
 using ToolsLib.Model;
 
@@ -73,6 +68,18 @@ namespace NetSync
             SetWatcher();
             FillFolderSpace();
             Run();
+            RestoreFolderFromFriend();
+        }
+
+        private void RestoreFolderFromFriend()
+        {
+            if (_curFriendsIps.Count > 0) 
+            {
+                var rq = new Request();
+                rq.Type = UserRequestType.IWANTUPDATEFOLDER;
+                var rqJson = JsonConvert.SerializeObject(rq);
+                Send(rqJson, IPAddress.Parse(_curFriendsIps.Values.ToArray()[0].Split(':')[0]));
+            }
         }
 
         private void RestoreUser(string file)
