@@ -29,7 +29,7 @@ namespace ToolsLib
                 {
                     //var fileContent = File.ReadAllBytes(file);
                     byte[] fileBuf = new byte[f.Length];
-                    var fileContent = f.Read(fileBuf, 0, (int)f.Length);
+                    var fileContent = f.Read(fileBuf, 0, unchecked((int)f.Length));
                     DirFiles.Add(file, fileBuf);
                 }
             }
