@@ -24,11 +24,13 @@ namespace ToolsLib
             var files = Directory.GetFiles(path);
             foreach (var file in files)
             {
-                var f = File.Exists(file);
-                if (f)
+                var f = File.Open(file, FileMode.Open);
+                if (f.CanRead)
                 {
-                    var fileContent = File.ReadAllBytes(file);
-                    DirFiles.Add(file, fileContent);
+                    //var fileContent = File.ReadAllBytes(file);
+                    byte[] fileBuf = null;
+                    var fileContent = f.Read(fileBuf, 0, (int)f.Length);
+                    DirFiles.Add(file, fileBuf);
                 }
             }
         }
