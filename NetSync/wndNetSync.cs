@@ -28,6 +28,7 @@ namespace NetSync
         private readonly string _userBackupFilePath;
         private readonly CancellationTokenSource _cancellationToken;
         private UdpClient _reciv;
+        private bool _is_receiving = false;
         private Dictionary<string, string> _curFriendsIps;
 
         private Dispatcher _thisDisp;
@@ -42,15 +43,14 @@ namespace NetSync
 
             _cancellationToken = new CancellationTokenSource();
 
-            _host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var ip in _host.AddressList)
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
             {
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    _ip = ip;
-                    _ipStr = _ip.ToString();
-                }
+                socket.Connect("8.8.8.8", _port);
+                IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                _ip = endPoint.Address;
+                _ipStr = endPoint.Address.ToString();
             }
+
 
             _userBackupFilePath = GetUserBackupFile();
             if (_userBackupFilePath == "")
@@ -68,6 +68,16 @@ namespace NetSync
             SetWatcher();
             FillFolderSpace();
             Run();
+        }
+
+        private void StartReceiving()
+        {
+            _is_receiving = true;
+        }
+
+        private void StopReceiving()
+        {
+            _is_receiving = false;
         }
 
         private void RestoreFolderFromFriend()
@@ -132,7 +142,7 @@ namespace NetSync
                 return;
             }
             lbFolderSpace.Items.Clear();
-            var allDirFiles = Directory.GetFiles(_user.UserDirectory.Path);
+            var allDirFiles = Directory.GetFiles(_user.UserDirectory.Path, "*", SearchOption.AllDirectories);
             foreach (var file in allDirFiles)
             {
                 lbFolderSpace.Items.Add(file);
@@ -141,6 +151,7 @@ namespace NetSync
 
         private void FolderChanged(object sender, FileSystemEventArgs e)
         {
+            if (_is_receiving) return;
             Console.WriteLine("IN_FOLDER_CHANGE");
             FillFolderSpace();
             NotifyFriends(e.ChangeType.ToString());
@@ -205,7 +216,9 @@ namespace NetSync
         {
             if (ofdAdd.ShowDialog() == DialogResult.OK)
             {
+                if (ofdAdd.FileName.Contains(_user.UserDirectory.Path)) return;
                 var lastPt = ofdAdd.FileName.Split('\\').Last();
+                var dirPath = _user.UserDirectory.Path.Split('\\');
                 File.Copy(ofdAdd.FileName, Path.Combine(_user.UserDirectory.Path, lastPt), true);
             }
             SetButtons();
@@ -366,7 +379,7 @@ namespace NetSync
 
         private void UpdateFolder(DirectoryFiles files, bool fullChanges=false)
         {
-            var myFiles = Directory.GetFiles(_user.UserDirectory.Path);
+            var myFiles = Directory.GetFiles(_user.UserDirectory.Path, "*", SearchOption.AllDirectories);
             var basesForUpd = GetBasesForUpdateFolder(myFiles, files);
             var filesCount = myFiles.Length;
             fswTracker.Path = "/";
@@ -421,6 +434,8 @@ namespace NetSync
             {
                 Console.WriteLine("BASE_RESTORE");
                 var newFPath = Path.Combine(_user.UserDirectory.Path, file);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(newFPath));
 
                 var fs = new StreamWriter(newFPath);
                 fs.Write("");
@@ -591,7 +606,9 @@ namespace NetSync
                             Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.IWANTSENDFOLDER:
+                            _thisDisp.Invoke(StartReceiving);
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData));
+                            _thisDisp.Invoke(StopReceiving);
                             break;
                         case UserRequestType.FRIENDFINALACCEPT:
                             _user.Friends.Add(decodedRq.MainData);
@@ -609,7 +626,9 @@ namespace NetSync
                             Send(answerRqJson, remoteIp.Address);
                             break;
                         case UserRequestType.IUPDATEDFOLDER:
+                            _thisDisp.Invoke(StartReceiving);
                             UpdateFolder(JsonConvert.DeserializeObject<DirectoryFiles>(decodedRq.MainData), true);
+                            _thisDisp.Invoke(StopReceiving);
                             break;
                         case UserRequestType.ERROR:
                             MessageBox.Show("Произошла ошибка при обработке сообщения");

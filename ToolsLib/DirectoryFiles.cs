@@ -56,18 +56,20 @@ namespace ToolsLib
         {
             BasePath = path;
             DirFiles = new Dictionary<string, byte[]>();
-            var files = Directory.GetFiles(path);
+            var files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
             foreach (var file in files)
             {
                 if (WaitForFile(file))
                 {
-                    var f = File.Open(file, FileMode.Open);
-                    if (f.CanRead)
+                    using (var f = File.Open(file, FileMode.Open))
                     {
-                        Console.WriteLine("CANREADFILE");
-                        f.Close();
-                        var fileContent = File.ReadAllBytes(file);
-                        DirFiles.Add(file, fileContent);
+                        if (f.CanRead)
+                        {
+                            Console.WriteLine("CANREADFILE");
+                            f.Close();
+                            var fileContent = File.ReadAllBytes(file);
+                            DirFiles.Add(file, fileContent);
+                        }
                     }
                 }
             }
