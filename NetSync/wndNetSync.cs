@@ -584,7 +584,9 @@ namespace NetSync
                             _thisDisp.Invoke(UpdateFriendsList);
                             if (iWasEmpty) 
                             {
+                                _thisDisp.Invoke(StartReceiving);
                                 RestoreFolderFromFriend();
+                                _thisDisp.Invoke(StopReceiving);
                             }
                             break;
                         case UserRequestType.FRIENDCHECKANSWERFINAL:
