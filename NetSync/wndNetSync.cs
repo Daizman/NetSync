@@ -42,7 +42,7 @@ namespace NetSync
 
             _cancellationToken = new CancellationTokenSource();
 
-            _host = Dns.GetHostEntry(Dns.GetHostName());
+            /*_host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in _host.AddressList)
             {
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
@@ -50,6 +50,13 @@ namespace NetSync
                     _ip = ip;
                     _ipStr = _ip.ToString();
                 }
+            }*/
+            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+            {
+                socket.Connect("8.8.8.8", 11000);
+                var ipEp = socket.LocalEndPoint as IPEndPoint;
+                _ip = ipEp.Address;
+                _ipStr = _ip.ToString();
             }
 
             _userBackupFilePath = GetUserBackupFile();
