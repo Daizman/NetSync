@@ -568,7 +568,6 @@ namespace NetSync
                             }
                             break;
                         case UserRequestType.FRIENDCHECKANSWER:
-                            bool iWasEmpty = _curFriendsIps.Count == 0;
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
                             {
                                 _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
@@ -582,14 +581,9 @@ namespace NetSync
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
-                            if (iWasEmpty) 
-                            {
-                                _thisDisp.Invoke(StartReceiving);
-                                RestoreFolderFromFriend();
-                                _thisDisp.Invoke(StopReceiving);
-                            }
                             break;
                         case UserRequestType.FRIENDCHECKANSWERFINAL:
+                            bool iWasEmpty = _curFriendsIps.Count == 0;
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
                             {
                                 _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
@@ -597,6 +591,12 @@ namespace NetSync
                             else
                             {
                                 _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            }
+                            if (iWasEmpty)
+                            {
+                                _thisDisp.Invoke(StartReceiving);
+                                RestoreFolderFromFriend();
+                                _thisDisp.Invoke(StopReceiving);
                             }
                             _thisDisp.Invoke(UpdateFriendsList);
                             break;
