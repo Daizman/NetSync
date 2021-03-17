@@ -132,7 +132,7 @@ namespace NetSync
                 return;
             }
             lbFolderSpace.Items.Clear();
-            var allDirFiles = Directory.GetFiles(_user.UserDirectory.Path);
+            var allDirFiles = Directory.GetFiles(_user.UserDirectory.Path, "*", SearchOption.AllDirectories);
             foreach (var file in allDirFiles)
             {
                 lbFolderSpace.Items.Add(file);
@@ -205,7 +205,9 @@ namespace NetSync
         {
             if (ofdAdd.ShowDialog() == DialogResult.OK)
             {
+                if (ofdAdd.FileName.Contains(_user.UserDirectory.Path)) return;
                 var lastPt = ofdAdd.FileName.Split('\\').Last();
+                var dirPath = _user.UserDirectory.Path.Split('\\');
                 File.Copy(ofdAdd.FileName, Path.Combine(_user.UserDirectory.Path, lastPt), true);
             }
             SetButtons();
