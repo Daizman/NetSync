@@ -44,7 +44,7 @@ namespace NetSync
 
             using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
             {
-                socket.Connect("8.8.8.8", 65530);
+                socket.Connect("8.8.8.8", _port);
                 IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
                 _ip = endPoint.Address;
                 _ipStr = endPoint.Address.ToString();
@@ -422,6 +422,8 @@ namespace NetSync
             {
                 Console.WriteLine("BASE_RESTORE");
                 var newFPath = Path.Combine(_user.UserDirectory.Path, file);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(newFPath));
 
                 var fs = new StreamWriter(newFPath);
                 fs.Write("");
