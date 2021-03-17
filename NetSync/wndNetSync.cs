@@ -42,15 +42,14 @@ namespace NetSync
 
             _cancellationToken = new CancellationTokenSource();
 
-            _host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var ip in _host.AddressList)
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
             {
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    _ip = ip;
-                    _ipStr = _ip.ToString();
-                }
+                socket.Connect("8.8.8.8", 65530);
+                IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                _ip = endPoint.Address;
+                _ipStr = endPoint.Address.ToString();
             }
+
 
             _userBackupFilePath = GetUserBackupFile();
             if (_userBackupFilePath == "")
