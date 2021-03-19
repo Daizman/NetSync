@@ -313,7 +313,7 @@ namespace NetSync
         {
             while (true)
             {
-                Thread.Sleep(3000);
+                Thread.Sleep(1000);
                 Console.WriteLine("PINGFRIENDS");
                 _thisDisp.Invoke(lbFriends.Items.Clear);
                 foreach (var fr in _user.Friends)
