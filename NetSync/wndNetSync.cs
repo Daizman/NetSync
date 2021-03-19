@@ -313,7 +313,7 @@ namespace NetSync
         {
             while (true)
             {
-                Thread.Sleep(10000);
+                Thread.Sleep(1000);
                 Console.WriteLine("PINGFRIENDS");
                 _thisDisp.Invoke(lbFriends.Items.Clear);
                 foreach (var fr in _user.Friends)
@@ -520,12 +520,34 @@ namespace NetSync
                             }
                             answerRq.Type = UserRequestType.FRIENDFINALACCEPT;
                             answerRq.MainData = _user.PublicKey;
+                            answerRq.AdditionalInfo = JsonConvert.SerializeObject(_curFriendsIps);
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
                             answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
+                            answerRq.Type = UserRequestType.IHAVENEWFRIEND;
+                            answerRq.MainData = decodedRq.MainData;
+                            answerRq.AdditionalInfo = remoteIp.ToString();
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            foreach (var friend in _curFriendsIps)
+                            {
+                                if (friend.Key != decodedRq.MainData && friend.Key != decodedRq.MainData)
+                                {
+                                    Send(answerRqJson, IPAddress.Parse(friend.Value.Split(':')[0]));
+                                }
+                            }
+                            break;
+                        case UserRequestType.IHAVENEWFRIEND:
+                            if (_curFriendsIps.ContainsKey(decodedRq.MainData))
+                            {
+                                _curFriendsIps[decodedRq.MainData] = decodedRq.AdditionalInfo;
+                            }
+                            else
+                            {
+                                _curFriendsIps.Add(decodedRq.MainData, decodedRq.AdditionalInfo);
+                            }
                             break;
                         case UserRequestType.FRIENDRQ:
                             if (decodedRq.MainData == _user.PublicKey)
@@ -568,6 +590,7 @@ namespace NetSync
                             }
                             break;
                         case UserRequestType.FRIENDCHECKANSWER:
+                            bool iWasEmpty = _curFriendsIps.Count == 0;
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
                             {
                                 _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
@@ -581,9 +604,15 @@ namespace NetSync
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
+                            if (iWasEmpty)
+                            {
+                                _thisDisp.Invoke(StartReceiving);
+                                RestoreFolderFromFriend();
+                                _thisDisp.Invoke(StopReceiving);
+                            }
                             break;
                         case UserRequestType.FRIENDCHECKANSWERFINAL:
-                            bool iWasEmpty = _curFriendsIps.Count == 0;
+                            iWasEmpty = _curFriendsIps.Count == 0;
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
                             {
                                 _curFriendsIps[decodedRq.MainData] = remoteIp.ToString();
@@ -621,6 +650,14 @@ namespace NetSync
                             else
                             {
                                 _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            }
+                            var newFriends = JsonConvert.DeserializeObject<Dictionary<string, string>>(decodedRq.AdditionalInfo);
+                            foreach (var frien in newFriends)
+                            {
+                                if (!_curFriendsIps.ContainsKey(frien.Key) && frien.Key != _user.PublicKey)
+                                {
+                                    _curFriendsIps.Add(frien.Key, frien.Value);
+                                }
                             }
                             _thisDisp.Invoke(UpdateFriendsList);
                             answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
