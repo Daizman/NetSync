@@ -533,14 +533,13 @@ namespace NetSync
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             foreach (var friend in _curFriendsIps)
                             {
-                                if (friend.Key != decodedRq.MainData)
+                                if (friend.Key != decodedRq.MainData && friend.Key != decodedRq.MainData)
                                 {
                                     Send(answerRqJson, IPAddress.Parse(friend.Value.Split(':')[0]));
                                 }
                             }
                             break;
                         case UserRequestType.IHAVENEWFRIEND:
-
                             if (_curFriendsIps.ContainsKey(decodedRq.MainData))
                             {
                                 _curFriendsIps[decodedRq.MainData] = decodedRq.AdditionalInfo;
@@ -655,7 +654,10 @@ namespace NetSync
                             var newFriends = JsonConvert.DeserializeObject<Dictionary<string, string>>(decodedRq.AdditionalInfo);
                             foreach (var frien in newFriends)
                             {
-                                _curFriendsIps.Add(frien.Key, frien.Value);
+                                if (!_curFriendsIps.ContainsKey(frien.Key) && frien.Key != _user.PublicKey)
+                                {
+                                    _curFriendsIps.Add(frien.Key, frien.Value);
+                                }
                             }
                             _thisDisp.Invoke(UpdateFriendsList);
                             answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
