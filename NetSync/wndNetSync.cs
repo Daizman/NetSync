@@ -520,12 +520,33 @@ namespace NetSync
                             }
                             answerRq.Type = UserRequestType.FRIENDFINALACCEPT;
                             answerRq.MainData = _user.PublicKey;
+                            answerRq.AdditionalInfo = JsonConvert.SerializeObject(_user.Friends);
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
                             _thisDisp.Invoke(UpdateFriendsList);
                             answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
                             answerRqJson = JsonConvert.SerializeObject(answerRq);
                             Send(answerRqJson, remoteIp.Address);
+                            answerRq.Type = UserRequestType.IHAVENEWFRIEND;
+                            answerRq.MainData = decodedRq.MainData;
+                            answerRqJson = JsonConvert.SerializeObject(answerRq);
+                            foreach (var friend in _curFriendsIps)
+                            {
+                                if (friend.Key != decodedRq.MainData)
+                                {
+                                    Send(answerRqJson, IPAddress.Parse(friend.Value.Split(':')[0]));
+                                }
+                            }
+                            break;
+                        case UserRequestType.IHAVENEWFRIEND:
+                            if (_curFriendsIps.ContainsKey(decodedRq.MainData))
+                            {
+                                _curFriendsIps[decodedRq.MainData] = string.Empty;
+                            }
+                            else
+                            {
+                                _curFriendsIps.Add(decodedRq.MainData, string.Empty);
+                            }
                             break;
                         case UserRequestType.FRIENDRQ:
                             if (decodedRq.MainData == _user.PublicKey)
@@ -628,6 +649,11 @@ namespace NetSync
                             else
                             {
                                 _curFriendsIps.Add(decodedRq.MainData, remoteIp.ToString());
+                            }
+                            var newFriends = JsonConvert.DeserializeObject<List<string>>(decodedRq.AdditionalInfo);
+                            foreach (var frien in newFriends)
+                            {
+                                _curFriendsIps.Add(frien, string.Empty);
                             }
                             _thisDisp.Invoke(UpdateFriendsList);
                             answerRq.Type = UserRequestType.IWANTUPDATEFOLDER;
