@@ -546,6 +546,7 @@ namespace NetSync
                             }
                             else
                             {
+                                _user.Friends.Add(decodedRq.MainData);
                                 _curFriendsIps.Add(decodedRq.MainData, decodedRq.AdditionalInfo);
                             }
                             break;
@@ -656,6 +657,7 @@ namespace NetSync
                             {
                                 if (!_curFriendsIps.ContainsKey(frien.Key) && frien.Key != _user.PublicKey)
                                 {
+                                    _user.Friends.Add(frien.Key);
                                     _curFriendsIps.Add(frien.Key, frien.Value);
                                 }
                             }
